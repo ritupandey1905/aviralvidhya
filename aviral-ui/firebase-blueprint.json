@@ -1,0 +1,82 @@
+{
+  "entities": {
+    "School": {
+      "title": "School Tenant Entity",
+      "description": "Represents a single school registered on the multi-tenant School ERP.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique, alphanumeric school ID" },
+        "name": { "type": "string", "description": "Name of the school" },
+        "city": { "type": "string", "description": "City where the school is located" },
+        "state": { "type": "string", "description": "State where the school is located" },
+        "registeredAt": { "type": "string", "format": "date-time", "description": "ISO timestamp of registration" },
+        "activeFeatures": {
+          "type": "object",
+          "description": "Flags setting enabled/disabled modules per school"
+        }
+      },
+      "required": ["id", "name", "city", "state", "activeFeatures"]
+    },
+    "Student": {
+      "title": "Student Entity",
+      "description": "Represents a student enrolled in a specific class and school.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "rollNo": { "type": "string" },
+        "class": { "type": "string" },
+        "section": { "type": "string" },
+        "schoolId": { "type": "string", "description": "Foreign key partition identifier to ensure strict multi-tenant isolation" },
+        "fees": { "type": "object", "description": "Fee status information" },
+        "attendance": { "type": "object", "description": "Attendance rates and history list" }
+      },
+      "required": ["id", "name", "rollNo", "class", "section", "schoolId"]
+    },
+    "Teacher": {
+      "title": "Teacher Entity",
+      "description": "Represents an instructor or teacher employed by a school.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "subject": { "type": "string" },
+        "schoolId": { "type": "string" },
+        "email": { "type": "string" }
+      },
+      "required": ["id", "name", "subject", "schoolId", "email"]
+    },
+    "Notice": {
+      "title": "Notice/Circular Entity",
+      "description": "Represents general memos, alerts, and instructions sent by school admins to parents.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "schoolId": { "type": "string" },
+        "date": { "type": "string" },
+        "category": { "type": "string" }
+      },
+      "required": ["id", "title", "content", "schoolId", "date", "category"]
+    }
+  },
+  "firestore": {
+    "/schools/{schoolId}": {
+      "schema": "School",
+      "description": "Document root representing each school's general statistics and basic configurations."
+    },
+    "/schools/{schoolId}/students/{studentId}": {
+      "schema": "Student",
+      "description": "Sub-collection of students segmented strictly inside each school path."
+    },
+    "/schools/{schoolId}/teachers/{teacherId}": {
+      "schema": "Teacher",
+      "description": "Sub-collection of teachers partitioned by schoolId."
+    },
+    "/schools/{schoolId}/notices/{noticeId}": {
+      "schema": "Notice",
+      "description": "School notices and board announcements."
+    }
+  }
+}

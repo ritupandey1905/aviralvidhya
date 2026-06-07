@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny rule
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Is Valid ID helper
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Signed in check
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // 1. Schools Collection rules
+    match /schools/{schoolId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(schoolId) 
+                     && request.resource.data.id == schoolId;
+      allow update: if isSignedIn() && request.resource.data.name is string;
+      allow delete: if false; // School deletion blocked in self-serve client
+    }
+
+    // 2. Students Sub-collection (Multi-tenant isolated)
+    match /schools/{schoolId}/students/{studentId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() 
+                     && isValidId(schoolId) 
+                     && isValidId(studentId)
+                     && request.resource.data.schoolId == schoolId;
+      allow delete: if isSignedIn();
+    }
+
+    // 3. Teachers Sub-collection (Multi-tenant isolated)
+    match /schools/{schoolId}/teachers/{teacherId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() 
+                     && isValidId(schoolId) 
+                     && isValidId(teacherId)
+                     && request.resource.data.schoolId == schoolId;
+      allow delete: if isSignedIn();
+    }
+
+    // 4. Notices Sub-collection (Multi-tenant isolated)
+    match /schools/{schoolId}/notices/{noticeId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() 
+                     && isValidId(schoolId) 
+                     && isValidId(noticeId)
+                     && request.resource.data.schoolId == schoolId;
+      allow delete: if isSignedIn();
+    }
+  }
+}

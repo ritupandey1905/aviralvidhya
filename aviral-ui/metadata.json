@@ -1,0 +1,6 @@
+{
+  "name": "School ERP System",
+  "description": "A beautifully designed, premium sample prototype for a multi-tenant School ERP application featuring administrators, schools configuration, and localized parent portal.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
