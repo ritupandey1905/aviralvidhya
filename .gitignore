@@ -1,0 +1,60 @@
+# Environment Variables
+.env
+.env.local
+.env.production.local
+.env.*.local
+
+# Credentials and Secrets
+*.pem
+*.key
+*.crt
+serviceAccountKey.json
+firebase-key.json
+credentials.json
+secrets.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+*.iml
+.settings/
+.project
+.classpath
+
+# Backend (Java/Maven) - aviral-api/
+aviral-api/target/
+aviral-api/out/
+aviral-api/.mvn/
+aviral-api/*.log
+aviral-api/*.class
+aviral-api/*.jar
+aviral-api/*.war
+aviral-api/.gradle/
+aviral-api/build/
+
+# Frontend (Node/React/Vite) - aviral-ui/
+aviral-ui/node_modules/
+aviral-ui/dist/
+aviral-ui/build/
+aviral-ui/coverage/
+aviral-ui/*.log
+aviral-ui/.vite/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Misc
+*.bak
+*.backup
+.tmp/
+tmp/
+temp/
