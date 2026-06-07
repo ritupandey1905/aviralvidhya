@@ -47,7 +47,8 @@ public class FirebaseConfig {
                     FirebaseApp.initializeApp(options);
                 }
 
-                Firestore firestore = FirestoreClient.getFirestore();
+                FirebaseApp app = FirebaseApp.getInstance();
+                Firestore firestore = FirestoreClient.getFirestore(app, "aviralvidhya-firestore-db");
                 validateFirestoreConnection(firestore);
                 return firestore;
             } catch (Exception e) {
@@ -74,7 +75,7 @@ public class FirebaseConfig {
 
     private void validateFirestoreConnection(Firestore firestore) {
         try {
-            firestore.collection("__health_check__")
+            firestore.collection("health_check_status")
                     .document("ping")
                     .get()
                     .get();

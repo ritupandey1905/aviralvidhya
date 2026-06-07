@@ -18,7 +18,7 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+export const db = getFirestore(app, "aviralvidhya-firestore-db");
 export const auth = getAuth(app);
 
 // Keep track of connection status
