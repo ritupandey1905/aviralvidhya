@@ -1,0 +1,41 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env
+.env.local
+.env.production.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.iml
+
+# Credentials
+*.pem
+*.key
+*.crt
+serviceAccountKey.json
+firebase-key.json
+credentials.json
+secrets.json
+
+# Vite
+.vite/
+
+# OS
+Thumbs.db
+
+# Misc
+*.bak
+*.backup
+.tmp/
+tmp/
+temp/
+
