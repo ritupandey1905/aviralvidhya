@@ -5,12 +5,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { School, Student, Teacher, Notice, Role } from './types';
-import { 
-  INITIAL_SCHOOLS, 
-  INITIAL_STUDENTS, 
-  INITIAL_TEACHERS, 
-  INITIAL_NOTICES 
-} from './data/defaults';
 import {
   fetchSchools,
   fetchStudents,
@@ -201,7 +195,7 @@ export default function App() {
     const user = loginUsername.trim();
     const pass = loginPassword;
 
-    if (user === 'superadmin@vidyalaya.gov.in' && pass === 'admin') {
+    if (user === 'superadmin@aviralvidhya.com' && pass === 'admin') {
       setActiveRole('super_admin');
       setIsAuthenticated(true);
       setIsSuperAdminLogMode(true);
@@ -226,71 +220,52 @@ export default function App() {
 
   // Teacher actions: Post Homework to class level students
   const handleAddHomeworkToClass = async (classLevel: string, subject: string, title: string, dueDate: string) => {
-    const updatedStudents = students.map((s) => {
-      if (s.schoolId === activeSchoolId && s.class === classLevel) {
-        const freshHW = {
-          id: `hw_${Date.now()}_${Math.floor(Math.random() * 100)}`,
-          subject,
-          title,
-          dueDate,
-          status: 'pending' as const
-        };
-        return {
-          ...s,
-          homework: [...s.homework, freshHW]
-        };
-      }
-      return s;
-    });
-    saveLocalState(undefined, updatedStudents);
+    const classStudents = students.filter(s => s.schoolId === activeSchoolId && s.class === classLevel);
+    const freshHW = {
+      id: `hw_${Date.now()}_${Math.floor(Math.random() * 100)}`,
+      subject,
+      title,
+      dueDate,
+      status: 'pending' as const
+    };
 
-    if (firebaseActive) {
-      try {
-        const classStudents = updatedStudents.filter(s => s.schoolId === activeSchoolId && s.class === classLevel);
-        for (const cs of classStudents) {
-          await createStudent(cs);
+    try {
+      await Promise.all(classStudents.map(cs => updateStudent(cs.id, { homework: [...cs.homework, freshHW] })));
+      setStudents(prev => prev.map(s => {
+        if (s.schoolId === activeSchoolId && s.class === classLevel) {
+          return { ...s, homework: [...s.homework, freshHW] };
         }
-      } catch (err: any) {
-        setSyncError(`Failed to sync homework update: ${err?.message || err}`);
-      }
+        return s;
+      }));
+    } catch (err: any) {
+      setSyncError(`Failed to sync homework update: ${err?.message || err}`);
     }
   };
 
   // Teacher actions: Mark Student Attendance
   const handleMarkAttendance = async (studentId: string, status: 'present' | 'absent') => {
-    const updatedStudents = students.map((s) => {
-      if (s.id === studentId) {
-        const nextPresent = status === 'present' ? s.attendance.presentDays + 1 : s.attendance.presentDays;
-        const nextTotal = s.attendance.totalDays + 1;
-        const currentTodayStr = new Date().toISOString().split('T')[0];
-        const updateHistory = [
-          ...s.attendance.history.filter(h => h.date !== currentTodayStr),
-          { date: currentTodayStr, status }
-        ];
+    const s = students.find(st => st.id === studentId);
+    if (!s) return;
 
-        return {
-          ...s,
-          attendance: {
-            presentDays: nextPresent,
-            totalDays: nextTotal,
-            history: updateHistory
-          }
-        };
-      }
-      return s;
-    });
+    const nextPresent = status === 'present' ? s.attendance.presentDays + 1 : s.attendance.presentDays;
+    const nextTotal = s.attendance.totalDays + 1;
+    const currentTodayStr = new Date().toISOString().split('T')[0];
+    const updateHistory = [
+      ...s.attendance.history.filter(h => h.date !== currentTodayStr),
+      { date: currentTodayStr, status }
+    ];
 
-    saveLocalState(undefined, updatedStudents);
+    const updatedAttendance = {
+      presentDays: nextPresent,
+      totalDays: nextTotal,
+      history: updateHistory
+    };
 
-    if (firebaseActive) {
-      try {
-        const target = updatedStudents.find(st => st.id === studentId);
-        if (target) {
-          await updateStudent(studentId, { attendance: target.attendance });
-        }
-      } catch (err: any) {
-        setSyncError(`Failed to sync attendance update: ${err?.message || err}`);
-      }
+    try {
+      await updateStudent(studentId, { attendance: updatedAttendance });
+      setStudents(prev => prev.map(st => st.id === studentId ? { ...st, attendance: updatedAttendance } : st));
+    } catch (err: any) {
+      setSyncError(`Failed to sync attendance update: ${err?.message || err}`);
     }
   };
 
@@ -300,32 +275,7 @@ export default function App() {
       setIsLoading(true);
       setSyncError(null);
 
-      // 1. Try to load local caches first
-      const cachedSchools = localStorage.getItem('school_erp_schools');
-      const cachedStudents = localStorage.getItem('school_erp_students');
-      const cachedTeachers = localStorage.getItem('school_erp_teachers');
-      const cachedNotices = localStorage.getItem('school_erp_notices');
-
-      let rawSchoolsList = cachedSchools ? JSON.parse(cachedSchools) : INITIAL_SCHOOLS;
-      let currentSchoolsList = rawSchoolsList.map((sch: any) => {
-        const fallback = INITIAL_SCHOOLS.find(s => s.id === sch.id);
-        return {
-          ...fallback,
-          ...sch,
-          adminUsername: sch.adminUsername || fallback?.adminUsername || 'principal@saraswati.edu',
-          adminPassword: sch.adminPassword || fallback?.adminPassword || 'admin'
-        };
-      });
-      let currentStudentsList = cachedStudents ? JSON.parse(cachedStudents) : INITIAL_STUDENTS;
-      let currentTeachersList = cachedTeachers ? JSON.parse(cachedTeachers) : INITIAL_TEACHERS;
-      let currentNoticesList = cachedNotices ? JSON.parse(cachedNotices) : INITIAL_NOTICES;
-
-      setSchools(currentSchoolsList);
-      setStudents(currentStudentsList);
-      setTeachers(currentTeachersList);
-      setNotices(currentNoticesList);
-
-      // 2. Attempt Connection to backend API
+      // Attempt Connection to backend API
       try {
         const backendHealthy = await healthCheck();
         setFirebaseActive(backendHealthy);
@@ -338,29 +288,17 @@ export default function App() {
             fetchNotices()
           ]);
 
-          const normalizedSchools = fsSchools.map((data: any) => {
-            const fallback = INITIAL_SCHOOLS.find(s => s.id === data.id);
-            return {
-              ...fallback,
-              ...data,
-              adminUsername: data.adminUsername || fallback?.adminUsername || 'principal@saraswati.edu',
-              adminPassword: data.adminPassword || fallback?.adminPassword || 'admin'
-            } as School;
-          });
-
-          setSchools(normalizedSchools);
+          setSchools(fsSchools);
           setStudents(fsStudents);
           setTeachers(fsTeachers);
           setNotices(fsNotices);
-
-          localStorage.setItem('school_erp_schools', JSON.stringify(normalizedSchools));
-          localStorage.setItem('school_erp_students', JSON.stringify(fsStudents));
-          localStorage.setItem('school_erp_teachers', JSON.stringify(fsTeachers));
-          localStorage.setItem('school_erp_notices', JSON.stringify(fsNotices));
+        } else {
+          setSyncError("Backend API is not reachable.");
         }
       } catch (err: any) {
-        console.warn("Could not synchronize fully with backend API instance. Initializing with localized browser sandbox.", err);
+        console.error("Failed to connect to backend API.", err);
         setFirebaseActive(false);
+        setSyncError("Failed to connect to backend API.");
       } finally {
         setIsLoading(false);
       }
@@ -369,76 +307,48 @@ export default function App() {
     loadData();
   }, []);
 
-  // Sync to local storage state
+  // Sync to local state
   const saveLocalState = (sc?: School[], st?: Student[], tc?: Teacher[], nt?: Notice[]) => {
-    if (sc) {
-      setSchools(sc);
-      localStorage.setItem('school_erp_schools', JSON.stringify(sc));
-    }
-    if (st) {
-      setStudents(st);
-      localStorage.setItem('school_erp_students', JSON.stringify(st));
-    }
-    if (tc) {
-      setTeachers(tc);
-      localStorage.setItem('school_erp_teachers', JSON.stringify(tc));
-    }
-    if (nt) {
-      setNotices(nt);
-      localStorage.setItem('school_erp_notices', JSON.stringify(nt));
-    }
+    if (sc) setSchools(sc);
+    if (st) setStudents(st);
+    if (tc) setTeachers(tc);
+    if (nt) setNotices(nt);
   };
 
   // MULTI-TENANT WRITING WRAPPERS
   // 1. Super Admin: Update school feature flags
   const handleUpdateSchoolFeatures = async (schoolId: string, features: School['activeFeatures']) => {
-    const updated = schools.map((s) => {
-      if (s.id === schoolId) {
-        return { ...s, activeFeatures: features };
-      }
-      return s;
-    });
-    saveLocalState(updated);
-
-    if (firebaseActive) {
-      try {
-        await updateSchool(schoolId, { activeFeatures: features });
-      } catch (err: any) {
-        setSyncError(`Failed to update school features: ${err?.message || err}`);
-      }
+    try {
+      await updateSchool(schoolId, { activeFeatures: features });
+      setSchools(prev => prev.map(s => s.id === schoolId ? { ...s, activeFeatures: features } : s));
+    } catch (err: any) {
+      setSyncError(`Failed to update school features: ${err?.message || err}`);
     }
   };
 
   // 1b. Super Admin: Register new School Tenancy
   const handleAddSchool = async (newSchoolData: Omit<School, 'studentCount' | 'teacherCount' | 'registeredAt'>) => {
-    const freshSchool: School = {
+    const freshSchool: any = {
       ...newSchoolData,
       studentCount: 0,
       teacherCount: 0,
       registeredAt: new Date().toISOString()
     };
 
-    const updated = [...schools, freshSchool];
-    saveLocalState(updated);
-
-    // Swap active selected school context to newly created school context
-    setActiveSchoolId(freshSchool.id);
-
-    if (firebaseActive) {
-      try {
-        await createSchool(freshSchool);
-      } catch (err: any) {
-        setSyncError(`Failed to create school: ${err?.message || err}`);
-      }
+    try {
+      const created = await createSchool(freshSchool);
+      setSchools(prev => [...prev, created]);
+      setActiveSchoolId(created.id);
+    } catch (err: any) {
+      setSyncError(`Failed to create school: ${err?.message || err}`);
     }
   };
 
   // 2. School Admin: Register new Student Profile
   const handleAddStudent = async (newStudentData: Omit<Student, 'attendance' | 'fees'>) => {
-    // Explicit tenant isolation check using 'schoolId' variable
-    const freshStudent: Student = {
+    const freshStudent: any = {
       ...newStudentData,
-      schoolId: activeSchoolId, // Explicit multi-tenant safety
+      schoolId: activeSchoolId,
       attendance: {
         presentDays: 12,
         totalDays: 12,
@@ -452,166 +362,120 @@ export default function App() {
       }
     };
 
-    const updated = [...students, freshStudent];
-    saveLocalState(undefined, updated);
-
-    // Increment school student count
-    const updatedSchools = schools.map(s => {
-      if (s.id === activeSchoolId) {
-        return { ...s, studentCount: s.studentCount + 1 };
-      }
-      return s;
-    });
-    saveLocalState(updatedSchools);
-
-    if (firebaseActive) {
-      try {
-        await createStudent(freshStudent);
-        const nextCount = updatedSchools.find(s => s.id === activeSchoolId)?.studentCount ?? 0;
+    try {
+      const created = await createStudent(freshStudent);
+      setStudents(prev => [...prev, created]);
+      
+      const targetSchool = schools.find(s => s.id === activeSchoolId);
+      if (targetSchool) {
+        const nextCount = targetSchool.studentCount + 1;
         await updateSchool(activeSchoolId, { studentCount: nextCount });
-      } catch (err: any) {
-        setSyncError(`Failed to create student: ${err?.message || err}`);
+        setSchools(prev => prev.map(s => s.id === activeSchoolId ? { ...s, studentCount: nextCount } : s));
       }
+    } catch (err: any) {
+      setSyncError(`Failed to create student: ${err?.message || err}`);
     }
   };
 
   // 2b. School Admin: Delete student profile
   const handleDeleteStudent = async (studentId: string) => {
-    const updated = students.filter(s => s.id !== studentId);
-    saveLocalState(undefined, updated);
+    try {
+      await deleteStudent(studentId);
+      setStudents(prev => prev.filter(s => s.id !== studentId));
 
-    // Decrement student count
-    const updatedSchools = schools.map(s => {
-      if (s.id === activeSchoolId) {
-        return { ...s, studentCount: Math.max(0, s.studentCount - 1) };
-      }
-      return s;
-    });
-    saveLocalState(updatedSchools);
-
-    if (firebaseActive) {
-      try {
-        await deleteStudent(studentId);
-        const nextCount = updatedSchools.find(s => s.id === activeSchoolId)?.studentCount ?? 0;
+      const targetSchool = schools.find(s => s.id === activeSchoolId);
+      if (targetSchool) {
+        const nextCount = Math.max(0, targetSchool.studentCount - 1);
         await updateSchool(activeSchoolId, { studentCount: nextCount });
-      } catch (err: any) {
-        setSyncError(`Failed to delete student: ${err?.message || err}`);
+        setSchools(prev => prev.map(s => s.id === activeSchoolId ? { ...s, studentCount: nextCount } : s));
       }
+    } catch (err: any) {
+      setSyncError(`Failed to delete student: ${err?.message || err}`);
     }
   };
 
   // 2c. School Admin: Add Teacher with Faculty Credentials
   const handleAddTeacher = async (newTeacher: Teacher) => {
-    const updated = [...teachers, newTeacher];
-    saveLocalState(undefined, undefined, updated);
+    try {
+      const created = await createTeacher(newTeacher);
+      setTeachers(prev => [...prev, created]);
 
-    // Increment school teacher count
-    const updatedSchools = schools.map(s => {
-      if (s.id === activeSchoolId) {
-        return { ...s, teacherCount: s.teacherCount + 1 };
-      }
-      return s;
-    });
-    saveLocalState(updatedSchools);
-
-    if (firebaseActive) {
-      try {
-        await createTeacher(newTeacher);
-        const nextCount = updatedSchools.find(s => s.id === activeSchoolId)?.teacherCount ?? 0;
+      const targetSchool = schools.find(s => s.id === activeSchoolId);
+      if (targetSchool) {
+        const nextCount = targetSchool.teacherCount + 1;
         await updateSchool(activeSchoolId, { teacherCount: nextCount });
-      } catch (err: any) {
-        setSyncError(`Failed to create teacher: ${err?.message || err}`);
+        setSchools(prev => prev.map(s => s.id === activeSchoolId ? { ...s, teacherCount: nextCount } : s));
       }
+    } catch (err: any) {
+      setSyncError(`Failed to create teacher: ${err?.message || err}`);
     }
   };
 
   // 2d. School Admin: Delete Teacher Profile
   const handleDeleteTeacher = async (teacherId: string) => {
-    const updated = teachers.filter(t => t.id !== teacherId);
-    saveLocalState(undefined, undefined, updated);
+    try {
+      await deleteTeacher(teacherId);
+      setTeachers(prev => prev.filter(t => t.id !== teacherId));
 
-    // Decrement teacher count
-    const updatedSchools = schools.map(s => {
-      if (s.id === activeSchoolId) {
-        return { ...s, teacherCount: Math.max(0, s.teacherCount - 1) };
-      }
-      return s;
-    });
-    saveLocalState(updatedSchools);
-
-    if (firebaseActive) {
-      try {
-        await deleteTeacher(teacherId);
-        const nextCount = updatedSchools.find(s => s.id === activeSchoolId)?.teacherCount ?? 0;
+      const targetSchool = schools.find(s => s.id === activeSchoolId);
+      if (targetSchool) {
+        const nextCount = Math.max(0, targetSchool.teacherCount - 1);
         await updateSchool(activeSchoolId, { teacherCount: nextCount });
-      } catch (err: any) {
-        setSyncError(`Failed to delete teacher: ${err?.message || err}`);
+        setSchools(prev => prev.map(s => s.id === activeSchoolId ? { ...s, teacherCount: nextCount } : s));
       }
+    } catch (err: any) {
+      setSyncError(`Failed to delete teacher: ${err?.message || err}`);
     }
   };
 
   // 3. School Admin: Create notice
   const handleAddNotice = async (newNoticeData: Omit<Notice, 'id' | 'date'>) => {
-    const freshNotice: Notice = {
+    const freshNotice: any = {
       ...newNoticeData,
-      id: `notice_${Date.now()}`,
-      schoolId: activeSchoolId, // Isolated parameter
+      schoolId: activeSchoolId,
       date: new Date().toISOString().split('T')[0]
     };
 
-    const updated = [...notices, freshNotice];
-    saveLocalState(undefined, undefined, undefined, updated);
-
-    if (firebaseActive) {
-      try {
-        await createNotice(freshNotice);
-      } catch (err: any) {
-        setSyncError(`Failed to create notice: ${err?.message || err}`);
-      }
+    try {
+      const created = await createNotice(freshNotice);
+      setNotices(prev => [...prev, created]);
+    } catch (err: any) {
+      setSyncError(`Failed to create notice: ${err?.message || err}`);
     }
   };
 
   // 3b. School Admin: Delete circular notice
   const handleDeleteNotice = async (noticeId: string) => {
-    const updated = notices.filter(n => n.id !== noticeId);
-    saveLocalState(undefined, undefined, undefined, updated);
-
-    if (firebaseActive) {
-      try {
-        await deleteNotice(noticeId);
-      } catch (err: any) {
-        setSyncError(`Failed to delete notice: ${err?.message || err}`);
-      }
+    try {
+      await deleteNotice(noticeId);
+      setNotices(prev => prev.filter(n => n.id !== noticeId));
+    } catch (err: any) {
+      setSyncError(`Failed to delete notice: ${err?.message || err}`);
     }
   };
 
   // 4. Parent Portal: Fee Payment simulation trigger
   const handleFeePayment = async (studentId: string, amount: number) => {
-    const updated = students.map((s) => {
-      if (s.id === studentId) {
-        const nextPaid = s.fees.paidAmount + amount;
-        return {
-          ...s,
-          fees: {
-            ...s.fees,
-            paidAmount: nextPaid,
-            status: nextPaid >= s.fees.totalDue ? 'paid' as const : 'partial' as const
-          }
-        };
-      }
-      return s;
-    });
-    saveLocalState(undefined, updated);
+    const s = students.find(st => st.id === studentId);
+    if (!s) return;
 
-    if (firebaseActive) {
-      try {
-        const studentToUpdate = updated.find(s => s.id === studentId);
-        if (studentToUpdate) {
-          await updateStudent(studentId, { fees: studentToUpdate.fees });
+    const nextPaid = s.fees.paidAmount + amount;
+    const newFees = {
+      ...s.fees,
+      paidAmount: nextPaid,
+      status: nextPaid >= s.fees.totalDue ? 'paid' as const : 'partial' as const
+    };
+
+    try {
+      await updateStudent(studentId, { fees: newFees });
+      setStudents(prev => prev.map(st => {
+        if (st.id === studentId) {
+          return { ...st, fees: newFees };
         }
-      } catch (err: any) {
-        setSyncError(`Failed to update fee payment: ${err?.message || err}`);
-      }
+        return st;
+      }));
+    } catch (err: any) {
+      setSyncError(`Failed to update fee payment: ${err?.message || err}`);
     }
   };
 
@@ -991,7 +855,7 @@ export default function App() {
                     type="email"
                     value={loginUsername}
                     onChange={(e) => setLoginUsername(e.target.value)}
-                    placeholder="superadmin@vidyalaya.gov.in"
+                    placeholder="superadmin@aviralvidhya.com"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none"
                     required
                   />
@@ -1029,12 +893,12 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => {
-                    setLoginUsername('superadmin@vidyalaya.gov.in');
+                    setLoginUsername('superadmin@aviralvidhya.com');
                     setLoginPassword('admin');
                   }}
                   className="w-full py-2 bg-indigo-50 border border-indigo-150 rounded-xl text-indigo-750 font-bold transition-all text-xs cursor-pointer"
                 >
-                  Apply credentials: superadmin@vidyalaya.gov.in (admin)
+                  Apply credentials: superadmin@aviralvidhya.com (admin)
                 </button>
               </div>
             </div>
@@ -1147,6 +1011,29 @@ export default function App() {
                 <ArrowRight className="w-4 h-4 opacity-70" />
               </button>
 
+              {/* Teacher Portal Tab */}
+              <button
+                onClick={() => setActiveRole('teacher')}
+                className={`flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
+                  activeRole === 'teacher' 
+                    ? 'bg-emerald-600 text-white border-emerald-700 shadow-md' 
+                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                }`}
+                role="tab"
+                aria-selected={activeRole === 'teacher'}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-2.5 rounded-lg ${activeRole === 'teacher' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-emerald-600'}`}>
+                    <BookOpen className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider">Teacher View</p>
+                    <p className="text-[11px] opacity-80 mt-0.5">Classes, homework & grading</p>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 opacity-70" />
+              </button>
+
               {/* Parent Portal Tab */}
               <button
                 onClick={() => setActiveRole('parent')}
@@ -1203,6 +1090,18 @@ export default function App() {
                   onDeleteStudent={handleDeleteStudent}
                   onAddTeacher={handleAddTeacher}
                   onDeleteTeacher={handleDeleteTeacher}
+                />
+              )}
+
+              {activeRole === 'teacher' && selectedSchoolInfo && (
+                <TeacherDashboard 
+                  teacher={loggedInTeacher || teachers.find(t => t.schoolId === activeSchoolId) || {} as any}
+                  school={selectedSchoolInfo}
+                  students={students}
+                  notices={notices}
+                  onAddNotice={handleAddNotice}
+                  onAddHomeworkToClass={handleAddHomeworkToClass}
+                  onMarkAttendance={handleMarkAttendance}
                 />
               )}
 

@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { School, Student, Teacher, Notice, Expense, GradeEntry, TimetableSlot, LeaveApplication } from '../types';
+import { fetchExpenses, createExpense, fetchTimetable, createTimetableSlot, fetchGrades, createGrade, fetchLeaves, approveLeave, rejectLeave, deleteExpense, deleteTimetableSlot, deleteGrade } from '../api';
 import { 
   Users, 
   FileText, 
@@ -215,49 +216,26 @@ export default function SchoolAdminDashboard({
 
   // Sync / Load expenses, grading, timetable, leaves
   useEffect(() => {
-    // 1. Expenses
-    const savedExp = localStorage.getItem(`expenses_${schoolId}`);
-    let initialExp: Expense[] = savedExp ? JSON.parse(savedExp) : [];
-    if (initialExp.length === 0) {
-      initialExp = [
-        { id: `exp_1`, schoolId, title: 'Science Lab Chemicals', amount: 8500, category: 'Equipment', date: '2026-05-15' },
-        { id: `exp_2`, schoolId, title: 'Classroom AC Servicing', amount: 12000, category: 'Maintenance', date: '2026-05-20' },
-        { id: `exp_3`, schoolId, title: 'English Language Books Addition', amount: 4500, category: 'Library', date: '2026-05-22' }
-      ];
-      localStorage.setItem(`expenses_${schoolId}`, JSON.stringify(initialExp));
+    async function loadData() {
+      try {
+        const [expenses, timetables, gradesData, leaves] = await Promise.all([
+          fetchExpenses(),
+          fetchTimetable(),
+          fetchGrades(),
+          fetchLeaves()
+        ]);
+
+        setExpList(expenses.filter((e: any) => e.schoolId === schoolId));
+        setTimetable(timetables.filter((t: any) => t.schoolId === schoolId));
+        setGrades(gradesData.filter((g: any) => g.schoolId === schoolId));
+        setLeavesToReview(leaves.filter((l: any) => l.schoolId === schoolId));
+      } catch (error) {
+        console.error("Failed to load school admin dashboard data:", error);
+      }
     }
-    setExpList(initialExp);
-
-    // 2. Timetables
-    const savedTt = localStorage.getItem(`timetable_${schoolId}`);
-    let initialTt: TimetableSlot[] = savedTt ? JSON.parse(savedTt) : [];
-    if (initialTt.length === 0) {
-      initialTt = [
-        { id: `tt_1`, schoolId, class: 'Class IX', day: 'Monday', period: 'Period 1', subject: 'Mathematics', teacherName: 'Dr. Rajesh Deshmukh', time: '08:30 AM - 09:15 AM' },
-        { id: `tt_2`, schoolId, class: 'Class IX', day: 'Monday', period: 'Period 2', subject: 'Science', teacherName: 'Sunita Sharma', time: '09:15 AM - 10:00 AM' },
-        { id: `tt_3`, schoolId, class: 'Class X', day: 'Tuesday', period: 'Period 3', subject: 'Social Sci', teacherName: 'Anil Gupta', time: '10:00 AM - 10:45 AM' }
-      ];
-      localStorage.setItem(`timetable_${schoolId}`, JSON.stringify(initialTt));
-    }
-    setTimetable(initialTt);
-
-    // 3. Grades
-    const savedGr = localStorage.getItem(`grades_${schoolId}`);
-    let initialGr: GradeEntry[] = savedGr ? JSON.parse(savedGr) : [];
-    if (initialGr.length === 0 && isolatedStudents.length > 0) {
-      initialGr = [
-        { id: 'gr_1', schoolId, studentId: isolatedStudents[0]?.id || 's1', studentName: isolatedStudents[0]?.name || 'Student', class: isolatedStudents[0]?.class || 'IX', subject: 'Mathematics', marksObtained: 88, maxMarks: 100, grade: 'A', examName: 'Midterm Evaluation' }
-      ];
-      localStorage.setItem(`grades_${schoolId}`, JSON.stringify(initialGr));
-    }
-    setGrades(initialGr);
-
-    // 4. Leave applications to review
-    const savedLeaves = localStorage.getItem('school_erp_leaves');
-    let leavesList: LeaveApplication[] = savedLeaves ? JSON.parse(savedLeaves) : [];
-    setLeavesToReview(leavesList.filter(l => l.schoolId === schoolId));
-
-  }, [schoolId, students]);
+    
+    loadData();
+  }, [schoolId]);
 
   // Copy Clipboard Helper
   const handleCopy = (text: string, label: string) => {
@@ -351,12 +329,11 @@ export default function SchoolAdminDashboard({
   };
 
   // Submit custom Expense log entry
-  const handleExpenseSubmit = (e: React.FormEvent) => {
+  const handleExpenseSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!expenseTitle || !expenseAmt) return;
 
-    const freshExp: Expense = {
-      id: `exp_${Date.now()}`,
+    const freshExp: any = {
       schoolId,
       title: expenseTitle,
       amount: parseFloat(expenseAmt),
@@ -364,23 +341,24 @@ export default function SchoolAdminDashboard({
       date: new Date().toISOString().split('T')[0]
     };
 
-    const updated = [freshExp, ...expList];
-    setExpList(updated);
-    localStorage.setItem(`expenses_${schoolId}`, JSON.stringify(updated));
-
-    setExprSuccess(isAdminHindi ? "व्यय सफलतापूर्वक दर्ज किया गया!" : "Expense logged successfully in school book.");
-    setExpenseTitle('');
-    setExpenseAmt('');
-    setTimeout(() => setExprSuccess(''), 4500);
+    try {
+      const created = await createExpense(freshExp);
+      setExpList(prev => [created, ...prev]);
+      setExprSuccess(isAdminHindi ? "व्यय सफलतापूर्वक दर्ज किया गया!" : "Expense logged successfully in school book.");
+      setExpenseTitle('');
+      setExpenseAmt('');
+      setTimeout(() => setExprSuccess(''), 4500);
+    } catch (error: any) {
+      console.error("Failed to add expense:", error);
+    }
   };
 
   // Submit Timetable entry slot
-  const handleTimetableSubmit = (e: React.FormEvent) => {
+  const handleTimetableSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ttSubject || !ttTeacher) return;
 
-    const freshTt: TimetableSlot = {
-      id: `tt_${Date.now()}`,
+    const freshTt: any = {
       schoolId,
       class: ttClass,
       day: ttDay,
@@ -390,18 +368,20 @@ export default function SchoolAdminDashboard({
       time: ttTime
     };
 
-    const updated = [...timetable, freshTt];
-    setTimetable(updated);
-    localStorage.setItem(`timetable_${schoolId}`, JSON.stringify(updated));
-
-    setTtSuccess("Timetable slot registered.");
-    setTtSubject('');
-    setTtTeacher('');
-    setTimeout(() => setTtSuccess(''), 4000);
+    try {
+      const created = await createTimetableSlot(freshTt);
+      setTimetable(prev => [...prev, created]);
+      setTtSuccess("Timetable slot registered.");
+      setTtSubject('');
+      setTtTeacher('');
+      setTimeout(() => setTtSuccess(''), 4000);
+    } catch (error: any) {
+      console.error("Failed to add timetable slot:", error);
+    }
   };
 
   // Submit student academic grade marks
-  const handleGradeSubmit = (e: React.FormEvent) => {
+  const handleGradeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!gradeStudentId || !gradeMarks) return;
 
@@ -420,8 +400,7 @@ export default function SchoolAdminDashboard({
     else if (percentage >= 60) assignedLetters = 'C';
     else if (percentage >= 40) assignedLetters = 'D';
 
-    const freshGrade: GradeEntry = {
-      id: `gr_${Date.now()}`,
+    const freshGrade: any = {
       schoolId,
       studentId: gradeStudentId,
       studentName: selectedSt.name,
@@ -433,13 +412,15 @@ export default function SchoolAdminDashboard({
       examName: gradeExamName
     };
 
-    const updated = [freshGrade, ...grades];
-    setGrades(updated);
-    localStorage.setItem(`grades_${schoolId}`, JSON.stringify(updated));
-
-    setGradeSuccess("Grading report card marks logged.");
-    setGradeMarks('');
-    setTimeout(() => setGradeSuccess(''), 4000);
+    try {
+      const created = await createGrade(freshGrade);
+      setGrades(prev => [created, ...prev]);
+      setGradeSuccess("Grading report card marks logged.");
+      setGradeMarks('');
+      setTimeout(() => setGradeSuccess(''), 4000);
+    } catch (error: any) {
+      console.error("Failed to add grade:", error);
+    }
   };
 
   // Submit advanced targeted circular memo
@@ -472,40 +453,47 @@ export default function SchoolAdminDashboard({
   };
 
   // Remove leave entry action
-  const handleReviewLeave = (id: string, status: 'approved' | 'rejected') => {
-    const savedLeaves = localStorage.getItem('school_erp_leaves');
-    let leavesList: LeaveApplication[] = savedLeaves ? JSON.parse(savedLeaves) : [];
-    
-    const updated = leavesList.map(l => {
-      if (l.id === id) {
-        return { ...l, status };
+  const handleReviewLeave = async (id: string, status: 'approved' | 'rejected') => {
+    try {
+      if (status === 'approved') {
+        await approveLeave(id);
+      } else {
+        await rejectLeave(id);
       }
-      return l;
-    });
-
-    localStorage.setItem('school_erp_leaves', JSON.stringify(updated));
-    setLeavesToReview(updated.filter(l => l.schoolId === schoolId));
+      setLeavesToReview(prev => prev.map(l => l.id === id ? { ...l, status } : l));
+    } catch (error: any) {
+      console.error("Failed to review leave:", error);
+    }
   };
 
   // Delete Expense Helper
-  const handleDeleteExpense = (id: string) => {
-    const updated = expList.filter(e => e.id !== id);
-    setExpList(updated);
-    localStorage.setItem(`expenses_${schoolId}`, JSON.stringify(updated));
+  const handleDeleteExpense = async (id: string) => {
+    try {
+      await deleteExpense(id);
+      setExpList(prev => prev.filter(e => e.id !== id));
+    } catch (error: any) {
+      console.error("Failed to delete expense:", error);
+    }
   };
 
   // Delete Timetable Helper
-  const handleDeleteTimetable = (id: string) => {
-    const updated = timetable.filter(t => t.id !== id);
-    setTimetable(updated);
-    localStorage.setItem(`timetable_${schoolId}`, JSON.stringify(updated));
+  const handleDeleteTimetable = async (id: string) => {
+    try {
+      await deleteTimetableSlot(id);
+      setTimetable(prev => prev.filter(t => t.id !== id));
+    } catch (error: any) {
+      console.error("Failed to delete timetable slot:", error);
+    }
   };
 
   // Delete Grade entry helper
-  const handleDeleteGrade = (id: string) => {
-    const updated = grades.filter(g => g.id !== id);
-    setGrades(updated);
-    localStorage.setItem(`grades_${schoolId}`, JSON.stringify(updated));
+  const handleDeleteGrade = async (id: string) => {
+    try {
+      await deleteGrade(id);
+      setGrades(prev => prev.filter(g => g.id !== id));
+    } catch (error: any) {
+      console.error("Failed to delete grade:", error);
+    }
   };
 
   // English & Hindi dictionaries configuration

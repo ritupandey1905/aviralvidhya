@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { School, Student, Notice, LeaveApplication } from '../types';
+import { fetchLeaves, createLeave } from '../api';
 import { 
   Calendar, 
   CreditCard, 
@@ -72,31 +73,21 @@ export default function ParentPortal({
 
   // Sync / Load leave applications
   useEffect(() => {
-    // Load from local storage
-    const localLeaves = localStorage.getItem('school_erp_leaves');
-    let leavesList: LeaveApplication[] = localLeaves ? JSON.parse(localLeaves) : [];
-
-    // Fallback seed leaves if empty
-    if (leavesList.length === 0 && activeStudent) {
-      leavesList = [
-        {
-          id: 'leave_seed_1',
-          studentId: activeStudent.id,
-          studentName: activeStudent.name,
-          class: activeStudent.class,
-          schoolId: schoolId,
-          startDate: '2026-05-10',
-          endDate: '2026-05-12',
-          category: 'sick',
-          reason: 'Severe fever and physician-ordered recovery',
-          status: 'approved',
-          appliedAt: '2026-05-09T08:00:00.000Z'
+    async function loadLeaves() {
+      try {
+        const data = await fetchLeaves();
+        // Assuming data is an array of LeaveApplication, filter them for the student
+        if (activeStudent) {
+          const studentLeaves = data.filter((leave: any) => leave.studentId === activeStudent.id);
+          setLeaveApps(studentLeaves);
+        } else {
+          setLeaveApps([]);
         }
-      ];
-      localStorage.setItem('school_erp_leaves', JSON.stringify(leavesList));
+      } catch (error) {
+        console.error("Failed to fetch leaves", error);
+      }
     }
-
-    setLeaveApps(leavesList);
+    loadLeaves();
   }, [schoolId, activeStudentId, activeStudent]);
 
   // Handle Pay Now with dynamic status logic
@@ -128,8 +119,7 @@ export default function ParentPortal({
       return;
     }
 
-    const freshLeave: LeaveApplication = {
-      id: `leave_${Date.now()}`,
+    const freshLeave: any = {
       studentId: activeStudent.id,
       studentName: activeStudent.name,
       class: activeStudent.class,
@@ -142,16 +132,18 @@ export default function ParentPortal({
       appliedAt: new Date().toISOString()
     };
 
-    const updated = [freshLeave, ...leaveApps];
-    setLeaveApps(updated);
-    localStorage.setItem('school_erp_leaves', JSON.stringify(updated));
+    try {
+      const createdLeave = await createLeave(freshLeave);
+      setLeaveApps(prev => [createdLeave, ...prev]);
+      setLeaveSuccess("Leave application submitted to class teacher! / अवकाश आवेदन कक्षा शिक्षक को जमा कर दिया गया है!");
+      setReason('');
+      setStartDate('');
+      setEndDate('');
 
-    setLeaveSuccess("Leave application submitted to class teacher! / अवकाश आवेदन कक्षा शिक्षक को जमा कर दिया गया है!");
-    setReason('');
-    setStartDate('');
-    setEndDate('');
-
-    setTimeout(() => setLeaveSuccess(''), 6500);
+      setTimeout(() => setLeaveSuccess(''), 6500);
+    } catch (error: any) {
+      setLeaveError(`Failed to apply leave: ${error.message}`);
+    }
   };
 
   if (!activeStudent) {
