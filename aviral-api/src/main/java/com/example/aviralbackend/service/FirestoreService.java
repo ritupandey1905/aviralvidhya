@@ -6,6 +6,7 @@ import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QuerySnapshot;
 import com.google.cloud.firestore.WriteResult;
+import com.google.cloud.firestore.SetOptions;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
@@ -59,7 +60,8 @@ public class FirestoreService {
     public void update(String collectionName, String id, Map<String, Object> updates) throws ExecutionException, InterruptedException {
         checkAvailability();
         DocumentReference docRef = firestore.collection(collectionName).document(id);
-        docRef.update(updates).get();
+        // Use set with merge to apply a Map update reliably across firebase-admin versions
+        docRef.set(updates, SetOptions.merge()).get();
     }
 
     public void delete(String collectionName, String id) throws ExecutionException, InterruptedException {

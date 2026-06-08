@@ -28,7 +28,7 @@ interface ParentPortalProps {
   schools: School[];
   students: Student[];
   notices: Notice[];
-  onFeePayment: (studentId: string, amount: number) => void;
+  onFeePayment: (studentId: string, amount: number) => Promise<void>;
 }
 
 export default function ParentPortal({
@@ -66,6 +66,8 @@ export default function ParentPortal({
   const [leaveSuccess, setLeaveSuccess] = useState('');
   const [leaveError, setLeaveError] = useState('');
 
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentError, setPaymentError] = useState('');
   const [paymentSuccess, setPaymentSuccess] = useState('');
 
   // School metadata
@@ -90,17 +92,45 @@ export default function ParentPortal({
     loadLeaves();
   }, [schoolId, activeStudentId, activeStudent]);
 
-  // Handle Pay Now with dynamic status logic
-  const handlePayNow = () => {
-    if (!activeStudent) return;
-    const payAmount = activeStudent.fees.totalDue - activeStudent.fees.paidAmount;
-    if (payAmount <= 0) return;
+  useEffect(() => {
+    if (!activeStudent) {
+      setPaymentAmount('');
+      return;
+    }
+    const remaining = activeStudent.fees.totalDue - activeStudent.fees.paidAmount;
+    setPaymentAmount(remaining > 0 ? remaining.toString() : '0');
+    setPaymentError('');
+  }, [activeStudent]);
 
-    onFeePayment(activeStudent.id, payAmount);
-    setPaymentSuccess("Payment successfully updated in campus ledger ledger! / भुगतान सफलतापूर्वक कैम्पस खाता बही में अपडेट किया गया!");
-    setTimeout(() => {
+  // Handle Pay Now with dynamic status logic
+  const handlePayNow = async () => {
+    if (!activeStudent) return;
+    const remainingDue = activeStudent.fees.totalDue - activeStudent.fees.paidAmount;
+    const requestedAmount = Number(paymentAmount);
+
+    if (Number.isNaN(requestedAmount) || requestedAmount <= 0) {
+      setPaymentError('Enter a valid payment amount greater than zero. / शून्य से अधिक भुगतान राशि दर्ज करें।');
+      return;
+    }
+    if (requestedAmount > remainingDue) {
+      setPaymentError(`Amount cannot exceed remaining due ₹${remainingDue}. / शेष बकाया राशि से अधिक राशि नहीं हो सकती।`);
+      return;
+    }
+
+    setPaymentError('');
+    setPaymentSuccess('');
+    try {
+      await onFeePayment(activeStudent.id, requestedAmount);
+      setPaymentSuccess("Payment successfully updated in campus ledger! / भुगतान सफलतापूर्वक कैम्पस खाता बही में अपडेट किया गया!");
+      setTimeout(() => {
+        setPaymentSuccess('');
+      }, 6000);
+    } catch (err: any) {
       setPaymentSuccess('');
-    }, 6000);
+      console.error('Fee payment failed', err);
+      setPaymentError(`Payment failed: ${err?.message || err}`);
+      setTimeout(() => setPaymentError(''), 8000);
+    }
   };
 
   // Submit Leave application
@@ -327,14 +357,47 @@ export default function ParentPortal({
 
             {/* Payment Button Gateway */}
             {activeStudent.fees.totalDue - activeStudent.fees.paidAmount > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
+                  <label className="text-[10px] uppercase tracking-widest text-slate-500 font-black">
+                    Enter payment amount / भुगतान राशि दर्ज करें
+                  </label>
+                  <div className="flex gap-2 items-center">
+                    <div className="relative w-full">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">₹</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="50"
+                        value={paymentAmount}
+                        onChange={(e) => setPaymentAmount(e.target.value)}
+                        className="w-full pl-8 pr-3 py-3 text-sm border border-slate-300 rounded-xl bg-white focus:outline-none focus:border-emerald-500"
+                        aria-label="Payment amount"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentAmount((activeStudent.fees.totalDue - activeStudent.fees.paidAmount).toString())}
+                      className="px-3 py-3 bg-slate-950 text-white rounded-xl text-xs font-bold uppercase tracking-wide hover:bg-slate-800"
+                    >
+                      Full due
+                    </button>
+                  </div>
+                </div>
+
                 <button
                   onClick={handlePayNow}
                   className="w-full bg-gradient-to-r from-emerald-600 to-slate-900 hover:opacity-95 font-bold text-white text-xs py-3 rounded-xl shadow-md uppercase tracking-wide cursor-pointer transition-all flex items-center justify-center gap-1"
                 >
                   <CreditCard className="w-4 h-4" />
-                  <span>Process Online Payment / शेष शुल्क का सुरक्षित भुगतान करें</span>
+                  <span>Process Payment / भुगतान करें</span>
                 </button>
+
+                {paymentError && (
+                  <div className="bg-rose-50 border border-rose-200 text-rose-800 text-[11px] font-bold p-3 rounded-xl text-center">
+                    {paymentError}
+                  </div>
+                )}
                 {paymentSuccess && (
                   <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold p-3 rounded-xl text-center flex items-center justify-center gap-1.5 animate-fade-in">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />

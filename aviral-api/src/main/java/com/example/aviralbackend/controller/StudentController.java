@@ -27,7 +27,7 @@ public class StudentController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getById(@PathVariable String id) throws ExecutionException, InterruptedException {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getById(@PathVariable("id") String id) throws ExecutionException, InterruptedException {
         Map<String, Object> student = firestoreService.findById("students", id);
         if (student == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -44,14 +44,14 @@ public class StudentController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> update(@PathVariable String id, @RequestBody Map<String, Object> updates) throws ExecutionException, InterruptedException {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> update(@PathVariable("id") String id, @RequestBody Map<String, Object> updates) throws ExecutionException, InterruptedException {
         firestoreService.update("students", id, updates);
         Map<String, Object> updated = firestoreService.findById("students", id);
         return ResponseEntity.ok(ApiResponse.success(updated, "Student updated successfully"));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable String id) throws ExecutionException, InterruptedException {
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable("id") String id) throws ExecutionException, InterruptedException {
         firestoreService.delete("students", id);
         return ResponseEntity.ok(ApiResponse.success(null, "Student deleted successfully"));
     }

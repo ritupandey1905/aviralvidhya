@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { School, Student, Teacher, Notice, Role } from './types';
 import {
+  login,
   fetchSchools,
   fetchStudents,
   fetchTeachers,
@@ -84,33 +85,49 @@ export default function App() {
   const [syncError, setSyncError] = useState<string | null>(null);
   const [firebaseActive, setFirebaseActive] = useState(false);
 
+  const determineFrontendRole = (username: string, school: School | null): Role => {
+    const normalized = username.trim().toLowerCase();
+    if (school && normalized === school.adminUsername.trim().toLowerCase()) return 'school_admin';
+    if (normalized.includes('superadmin') || normalized.includes('super_admin')) return 'super_admin';
+    if (school) {
+      const teacher = teachers.find(t => t.schoolId === school.id && ((t.teacherUsername || '').trim().toLowerCase() === normalized || (t.email || '').trim().toLowerCase() === normalized));
+      if (teacher) return 'teacher';
+      const student = students.find(s => s.schoolId === school.id && s.parentUsername.trim().toLowerCase() === normalized);
+      if (student) return 'parent';
+    }
+    return 'parent';
+  };
+
   // Quick preset login helper for sandbox demo selection
-  const handleQuickLogin = (role: Role, schoolId: string, customUser: string) => {
+  const handleQuickLogin = async (role: Role, schoolId: string, customUser: string) => {
     const matchingSch = schools.find(s => s.id === schoolId);
     if (!matchingSch) return;
 
     setResolvedSchool(matchingSch);
     setActiveSchoolId(schoolId);
-    setActiveRole(role);
     setLoginUsername(customUser);
-    
-    // Auto populate details based on selected role
-    if (role === 'super_admin') {
+    setLoginPassword('password');
+    setLoginError(null);
+
+    try {
+      const response = await login(customUser, 'password', schoolId);
+      const frontendRole = determineFrontendRole(customUser, matchingSch);
+      setActiveRole(frontendRole);
+      setLoginRole(frontendRole === 'school_admin' || frontendRole === 'teacher' || frontendRole === 'parent' ? frontendRole : 'school_admin');
+      if (frontendRole === 'teacher') {
+        const foundTeacher = teachers.find(t => t.schoolId === schoolId && (t.teacherUsername === customUser || t.email === customUser));
+        if (foundTeacher) setLoggedInTeacher(foundTeacher);
+      }
+      if (frontendRole === 'parent') {
+        const foundStudent = students.find(s => s.schoolId === schoolId && s.parentUsername === customUser);
+        if (foundStudent) setLoggedInStudent(foundStudent);
+      }
+      if (frontendRole === 'super_admin') {
+        setIsSuperAdminLogMode(true);
+      }
       setIsAuthenticated(true);
-      setIsSuperAdminLogMode(true);
-    } else if (role === 'school_admin') {
-      setLoginRole('school_admin');
-      setIsAuthenticated(true);
-    } else if (role === 'teacher') {
-      setLoginRole('teacher');
-      const foundTeacher = teachers.find(t => t.teacherUsername === customUser || t.email === customUser);
-      if (foundTeacher) setLoggedInTeacher(foundTeacher);
-      setIsAuthenticated(true);
-    } else if (role === 'parent') {
-      setLoginRole('parent');
-      const foundStudent = students.find(s => s.parentUsername === customUser);
-      if (foundStudent) setLoggedInStudent(foundStudent);
-      setIsAuthenticated(true);
+    } catch (err: any) {
+      setLoginError(err?.message || 'Quick login failed');
     }
   };
 
@@ -135,7 +152,7 @@ export default function App() {
   };
 
   // School standard whitelabel login submit (UNIFIED - AUTO DETECTS ROLE)
-  const handleSchoolLogin = (e: React.FormEvent) => {
+  const handleSchoolLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
 
@@ -147,60 +164,44 @@ export default function App() {
     const user = loginUsername.trim();
     const pass = loginPassword;
 
-    // 1. Check School Admin
-    if (user === resolvedSchool.adminUsername && pass === resolvedSchool.adminPassword) {
-      setLoginRole('school_admin');
-      setActiveRole('school_admin');
+    try {
+      await login(user, pass, resolvedSchool.id);
+      const frontendRole = determineFrontendRole(user, resolvedSchool);
+      setActiveRole(frontendRole);
+      setLoginRole(frontendRole === 'school_admin' || frontendRole === 'teacher' || frontendRole === 'parent' ? frontendRole : 'school_admin');
       setActiveSchoolId(resolvedSchool.id);
-      setIsAuthenticated(true);
-      return;
-    }
 
-    // 2. Check Teacher
-    const activeTeachers = teachers.filter(t => t.schoolId === resolvedSchool.id);
-    const matchedTeacher = activeTeachers.find(t => 
-      (t.teacherUsername === user || t.email === user) && t.teacherPassword === pass
-    );
-    if (matchedTeacher) {
-      setLoginRole('teacher');
-      setLoggedInTeacher(matchedTeacher);
-      setActiveRole('teacher');
-      setActiveSchoolId(resolvedSchool.id);
+      if (frontendRole === 'teacher') {
+        const foundTeacher = teachers.find(t => t.schoolId === resolvedSchool.id && (t.teacherUsername === user || t.email === user));
+        if (foundTeacher) setLoggedInTeacher(foundTeacher);
+      }
+      if (frontendRole === 'parent') {
+        const foundStudent = students.find(s => s.schoolId === resolvedSchool.id && s.parentUsername === user);
+        if (foundStudent) setLoggedInStudent(foundStudent);
+      }
+      if (frontendRole === 'super_admin') {
+        setIsSuperAdminLogMode(true);
+      }
       setIsAuthenticated(true);
-      return;
+    } catch (err: any) {
+      setLoginError(err?.message || "Invalid username or password PIN code for this school tenancy / उपयोगकर्ता नाम या पासवर्ड पिन गलत है।");
     }
-
-    // 3. Check Parent/Student
-    const activeStudents = students.filter(s => s.schoolId === resolvedSchool.id);
-    const matchedStudent = activeStudents.find(s => 
-      s.parentUsername === user && s.parentPassword === pass
-    );
-    if (matchedStudent) {
-      setLoginRole('parent');
-      setLoggedInStudent(matchedStudent);
-      setActiveRole('parent');
-      setActiveSchoolId(resolvedSchool.id);
-      setIsAuthenticated(true);
-      return;
-    }
-
-    // No role matches
-    setLoginError("Invalid username or password PIN code for this school tenancy / उपयोगकर्ता नाम या पासवर्ड पिन गलत है।");
   };
 
-  // Central Super Admin manual login bypass
-  const handleSuperAdminLogin = (e: React.FormEvent) => {
+  // Central Super Admin login through API
+  const handleSuperAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
     const user = loginUsername.trim();
     const pass = loginPassword;
 
-    if (user === 'superadmin@aviralvidhya.com' && pass === 'admin') {
+    try {
+      await login(user, pass, activeSchoolId);
       setActiveRole('super_admin');
       setIsAuthenticated(true);
       setIsSuperAdminLogMode(true);
-    } else {
-      setLoginError("Access denied. Invalid Super Admin principal credentials.");
+    } catch (err: any) {
+      setLoginError(err?.message || "Access denied. Invalid Super Admin principal credentials.");
     }
   };
 
@@ -474,8 +475,12 @@ export default function App() {
         }
         return st;
       }));
+      return;
     } catch (err: any) {
-      setSyncError(`Failed to update fee payment: ${err?.message || err}`);
+      const msg = `Failed to update fee payment: ${err?.message || err}`;
+      setSyncError(msg);
+      // rethrow so callers (ParentPortal) can show an error message
+      throw new Error(msg);
     }
   };
 
