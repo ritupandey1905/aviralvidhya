@@ -16,7 +16,7 @@ import java.util.Map;
 @Component
 public class JwtTokenProvider {
     
-    @Value("${jwt.secret:my-super-secret-key-for-jwt-token-generation-and-validation-ensure-this-is-long-enough}")
+    @Value("${jwt.secret}")
     private String jwtSecret;
     
     @Value("${jwt.expiration:3600000}") // 1 hour default
@@ -54,11 +54,27 @@ public class JwtTokenProvider {
         return createToken(claims, userPrincipal.getUsername(), issuedAt, expiresAt);
     }
     
+    private SecretKey getSecretKey() {
+        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
+        if (keyBytes.length < 64) {
+            try {
+                java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-512");
+                keyBytes = md.digest(keyBytes);
+            } catch (java.security.NoSuchAlgorithmException e) {
+                log.error("SHA-512 algorithm not found, using padded key.");
+                byte[] padded = new byte[64];
+                System.arraycopy(keyBytes, 0, padded, 0, keyBytes.length);
+                keyBytes = padded;
+            }
+        }
+        return Keys.hmacShaKeyFor(keyBytes);
+    }
+    
     /**
      * Create JWT token with claims
      */
     private String createToken(Map<String, Object> claims, String subject, long issuedAt, long expiresAt) {
-        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+        SecretKey key = getSecretKey();
         
         return Jwts.builder()
                 .claims(claims)
@@ -74,7 +90,7 @@ public class JwtTokenProvider {
      */
     public boolean validateToken(String token) {
         try {
-            SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+            SecretKey key = getSecretKey();
             Jwts.parser()
                     .verifyWith(key)
                     .build()
@@ -138,7 +154,7 @@ public class JwtTokenProvider {
      * Extract all claims from token
      */
     public Claims getClaimsFromToken(String token) {
-        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+        SecretKey key = getSecretKey();
         return Jwts.parser()
                 .verifyWith(key)
                 .build()

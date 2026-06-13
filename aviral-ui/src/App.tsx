@@ -47,7 +47,8 @@ import {
   Building,
   UserCheck,
   CheckCircle,
-  HelpCircle
+  Bell,
+  
 } from 'lucide-react';
 
 export default function App() {
@@ -91,48 +92,15 @@ export default function App() {
     if (normalized.includes('superadmin') || normalized.includes('super_admin')) return 'super_admin';
     if (school) {
       const teacher = teachers.find(t => t.schoolId === school.id && ((t.teacherUsername || '').trim().toLowerCase() === normalized || (t.email || '').trim().toLowerCase() === normalized));
-      if (teacher) return 'teacher';
+      if (teacher) return teacher.designation || 'teacher';
       const student = students.find(s => s.schoolId === school.id && s.parentUsername.trim().toLowerCase() === normalized);
       if (student) return 'parent';
     }
     return 'parent';
   };
 
-  // Quick preset login helper for sandbox demo selection
-  const handleQuickLogin = async (role: Role, schoolId: string, customUser: string) => {
-    const matchingSch = schools.find(s => s.id === schoolId);
-    if (!matchingSch) return;
-
-    setResolvedSchool(matchingSch);
-    setActiveSchoolId(schoolId);
-    setLoginUsername(customUser);
-    setLoginPassword('password');
-    setLoginError(null);
-
-    try {
-      const response = await login(customUser, 'password', schoolId);
-      const frontendRole = determineFrontendRole(customUser, matchingSch);
-      setActiveRole(frontendRole);
-      setLoginRole(frontendRole === 'school_admin' || frontendRole === 'teacher' || frontendRole === 'parent' ? frontendRole : 'school_admin');
-      if (frontendRole === 'teacher') {
-        const foundTeacher = teachers.find(t => t.schoolId === schoolId && (t.teacherUsername === customUser || t.email === customUser));
-        if (foundTeacher) setLoggedInTeacher(foundTeacher);
-      }
-      if (frontendRole === 'parent') {
-        const foundStudent = students.find(s => s.schoolId === schoolId && s.parentUsername === customUser);
-        if (foundStudent) setLoggedInStudent(foundStudent);
-      }
-      if (frontendRole === 'super_admin') {
-        setIsSuperAdminLogMode(true);
-      }
-      setIsAuthenticated(true);
-    } catch (err: any) {
-      setLoginError(err?.message || 'Quick login failed');
-    }
-  };
-
-  // Submit school code
-  const handleSchoolCodeSubmit = (e: React.FormEvent) => {
+  // Submit school code (fetch schools on demand)
+  const handleSchoolCodeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSchoolCodeError(null);
     const code = enteredSchoolCode.trim().toUpperCase();
@@ -141,13 +109,35 @@ export default function App() {
       return;
     }
 
-    const matchedSchool = schools.find(s => s.schoolCode.toUpperCase() === code);
-    if (matchedSchool) {
-      setResolvedSchool(matchedSchool);
-      setActiveSchoolId(matchedSchool.id);
-      setLoginError(null);
-    } else {
-      setSchoolCodeError(`School access code "${code}" not found. Try 'DPS101', 'VPG202' or 'SBN303'.`);
+    try {
+      let currentSchools = schools;
+      let justFetched = false;
+
+      if (currentSchools.length === 0) {
+        // fetch school list on demand (only when user attempts to access a school)
+        const fsSchools = await fetchSchools().catch(() => []);
+        currentSchools = fsSchools || [];
+        setSchools(currentSchools);
+        justFetched = true;
+      }
+
+      let matchedSchool = currentSchools.find(s => s.schoolCode.toUpperCase() === code);
+
+      if (!matchedSchool && !justFetched) {
+         const freshSchools = await fetchSchools().catch(() => []);
+         matchedSchool = freshSchools.find((s: any) => s.schoolCode.toUpperCase() === code);
+         if (freshSchools.length > 0) setSchools(freshSchools);
+      }
+
+      if (matchedSchool) {
+        setResolvedSchool(matchedSchool);
+        setActiveSchoolId(matchedSchool.id);
+        setLoginError(null);
+      } else {
+        setSchoolCodeError(`School access code "${code}" not found. Try 'DPS101', 'VPG202' or 'SBN303'.`);
+      }
+    } catch (err: any) {
+      setSchoolCodeError('Failed to load school directory. Try again later.');
     }
   };
 
@@ -165,10 +155,13 @@ export default function App() {
     const pass = loginPassword;
 
     try {
-      await login(user, pass, resolvedSchool.id);
-      const frontendRole = determineFrontendRole(user, resolvedSchool);
+      const loginRes = await login(user, pass, resolvedSchool.id);
+      let frontendRole = determineFrontendRole(user, resolvedSchool);
+      if (loginRes?.role) {
+        frontendRole = loginRes.role.toLowerCase();
+      }
       setActiveRole(frontendRole);
-      setLoginRole(frontendRole === 'school_admin' || frontendRole === 'teacher' || frontendRole === 'parent' ? frontendRole : 'school_admin');
+      setLoginRole(frontendRole === 'school_admin' || frontendRole === 'teacher' || frontendRole === 'accountant' || frontendRole === 'principle' || frontendRole === 'parent' ? frontendRole : 'school_admin');
       setActiveSchoolId(resolvedSchool.id);
 
       if (frontendRole === 'teacher') {
@@ -196,8 +189,9 @@ export default function App() {
     const pass = loginPassword;
 
     try {
-      await login(user, pass, activeSchoolId);
+      await login(user, pass);
       setActiveRole('super_admin');
+      setActiveSchoolId('system');
       setIsAuthenticated(true);
       setIsSuperAdminLogMode(true);
     } catch (err: any) {
@@ -270,42 +264,12 @@ export default function App() {
     }
   };
 
-  // Initialize and Seed Data safely
+  // Defer any backend integration until user interaction to avoid pre-login API failures
   useEffect(() => {
-    async function loadData() {
-      setIsLoading(true);
-      setSyncError(null);
-
-      // Attempt Connection to backend API
-      try {
-        const backendHealthy = await healthCheck();
-        setFirebaseActive(backendHealthy);
-
-        if (backendHealthy) {
-          const [fsSchools, fsStudents, fsTeachers, fsNotices] = await Promise.all([
-            fetchSchools(),
-            fetchStudents(),
-            fetchTeachers(),
-            fetchNotices()
-          ]);
-
-          setSchools(fsSchools);
-          setStudents(fsStudents);
-          setTeachers(fsTeachers);
-          setNotices(fsNotices);
-        } else {
-          setSyncError("Backend API is not reachable.");
-        }
-      } catch (err: any) {
-        console.error("Failed to connect to backend API.", err);
-        setFirebaseActive(false);
-        setSyncError("Failed to connect to backend API.");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    loadData();
+    // Intentionally no automatic API calls on mount.
+    // This prevents failing network requests before a user attempts login.
+    setIsLoading(false);
+    setFirebaseActive(false);
   }, []);
 
   // Sync to local state
@@ -488,641 +452,664 @@ export default function App() {
   const selectedSchoolInfo = schools.find(s => s.id === activeSchoolId);
 
   return (
-    <div id="school-erp-application-frame" className="min-h-screen bg-slate-50 text-slate-900 pb-12 font-sans selection:bg-orange-200">
+    <div id="school-management-application-frame" className="app-container">
       
-      {/* Dynamic Global Top Indicator bar */}
-      <div id="security-telemetry-banner" className="bg-slate-950 text-slate-300 text-xs px-4 py-2.5 flex flex-col sm:flex-row justify-between items-center gap-2 border-b border-orange-500/30">
-        <div className="flex items-center gap-2">
-          <span className={`w-2.5 h-2.5 rounded-full ${isAuthenticated ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></span>
-          <span className="font-bold text-white tracking-wide">Rashtriya Sandbox Gateway Node</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <p className="text-slate-400">
-            {isAuthenticated ? (
+      {/* CORPORATE HEADER */}
+      <header className="border-b border-slate-200/60 sticky top-0 z-50 bg-white/80 backdrop-blur-xl shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          {/* Logo & Brand */}
+          <div className="flex-center-gap-lg">
+            <div className="text-2xl font-black text-indigo-600">🎓</div>
+            <div>
+              <h1 className="heading-3 bg-clip-text text-transparent bg-gradient-to-r from-indigo-700 to-blue-600">AviralVidhya</h1>
+              <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">School Management Platform</p>
+            </div>
+          </div>
+
+          {/* Navigation & Super Admin Link */}
+          <nav className="flex items-center gap-6">
+            {!isAuthenticated && (
               <>
-                Active Session: <strong className="text-amber-400 font-mono">Role: {activeRole.toUpperCase()} | Tenant: {activeSchoolId}</strong>
+                <a href="#features" className="text-sm text-slate-600 hover:text-indigo-600 font-semibold transition-colors">Features</a>
+                <a href="#pricing" className="text-sm text-slate-600 hover:text-indigo-600 font-semibold transition-colors">Pricing</a>
+                <a href="#contact" className="text-sm text-slate-600 hover:text-indigo-600 font-semibold transition-colors">Support</a>
+                <button
+                  onClick={() => {
+                    setIsSuperAdminLogMode(true);
+                    setResolvedSchool(null);
+                    setLoginError(null);
+                    setEnteredSchoolCode('');
+                  }}
+                  className="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition-all border border-indigo-200 px-4 py-2 rounded-xl hover:bg-indigo-50 shadow-sm"
+                >
+                  Admin Login
+                </button>
               </>
-            ) : (
-              <span className="text-amber-450 font-semibold">Enter credentials or select a quick-access portal key below</span>
             )}
-          </p>
-          <div className="flex items-center gap-2">
-            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${firebaseActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-500'}`}>
-              {firebaseActive ? 'Cloud Database Synced' : 'Sandbox Simulated'}
-            </span>
             {isAuthenticated && (
               <button
-                onClick={() => setIsAuthenticated(false)}
-                className="bg-rose-900/40 hover:bg-rose-900 text-rose-300 px-3 py-1 rounded text-[11px] font-bold transition-all ml-2 border border-rose-500/20"
+                onClick={handleLogout}
+                className="text-sm font-semibold text-slate-600 hover:text-slate-900 px-4 py-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition"
               >
-                Log Out / Switch Portal
+                Sign Out
               </button>
             )}
-          </div>
+          </nav>
         </div>
-      </div>
+      </header>
 
-      {!isAuthenticated ? (
-        <div id="portal-login-gateway" className="max-w-4xl mx-auto px-4 py-12 space-y-8 animate-fade-in">
-          {/* Header */}
-          <div className="text-center space-y-3">
-            <div className="inline-flex items-center gap-3 bg-amber-50 border border-amber-200 px-4 py-2 rounded-full text-amber-805 text-xs font-bold tracking-wide">
-              <span className="w-2 h-2 rounded-full bg-orange-600 animate-ping"></span>
-              विद्यालये सर्वजन सुविधा पोर्टल • India National Education Portal Grid
-            </div>
-            <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-slate-900 font-sans">
-              Vidyalaya <span className="bg-gradient-to-r from-orange-600 via-amber-600 to-emerald-600 bg-clip-text text-transparent">White-labeled Grid</span>
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-605 max-w-xl mx-auto leading-relaxed">
-              To browse any school, type its registered 6-digit campus code. School admins, teachers, and parents can access their secure dashboard workspaces seamlessly.
-            </p>
-          </div>
-
-          {/* SCENARIO A: SCHOOL CODE ENTRY GATEWAY STEP */}
-          {!resolvedSchool && !isSuperAdminLogMode && (
-            <div id="school-code-entry-screen" className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 max-w-lg mx-auto shadow-sm space-y-6">
-              <div className="text-center space-y-2">
-                <div className="p-3 bg-amber-50 text-amber-700 rounded-2xl w-fit mx-auto border border-amber-100">
-                  <Building className="w-8 h-8" />
-                </div>
-                <h2 className="text-lg font-black text-slate-900 uppercase tracking-wide">Enter School Access Code</h2>
-                <p className="text-xs text-slate-500">Provide the School Code given by your Central Administrator</p>
-              </div>
-
-              <form onSubmit={handleSchoolCodeSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="school-code-input" className="block text-xs font-black text-slate-500 uppercase tracking-widest text-center">
-                    6-CHAR CAMPUS SECURITY CODE
-                  </label>
-                  <div className="relative">
-                    <input
-                      id="school-code-input"
-                      type="text"
-                      maxLength={10}
-                      value={enteredSchoolCode}
-                      onChange={(e) => setEnteredSchoolCode(e.target.value.toUpperCase())}
-                      placeholder="e.g., DPS101"
-                      className="w-full text-center text-xl font-mono font-black uppercase bg-slate-50 border border-slate-250 rounded-2xl px-4 py-3.5 text-slate-900 tracking-widest focus:ring-2 focus:ring-orange-500/30 focus:outline-none focus:bg-white transition-all"
-                      required
-                    />
-                    <Search className="w-5 h-5 text-slate-400 absolute right-4 top-4 pointer-events-none" />
-                  </div>
-                  {schoolCodeError && (
-                    <p className="text-xs text-rose-600 font-bold text-center bg-rose-50 border border-rose-100 p-2.5 rounded-xl">
-                      ⚠️ {schoolCodeError}
+      {/* MAIN CONTENT */}
+      <main className="flex-1">
+        {!isAuthenticated ? (
+          <div className="space-y-0">
+            {/* HERO SECTION WITH SCHOOL LOGIN */}
+            <section className="relative py-24 px-4 hero-mesh overflow-hidden">
+              <div className="absolute inset-0 pattern-grid opacity-60"></div>
+              <div className="max-w-6xl mx-auto relative z-10">
+                <div className="grid lg:grid-cols-2 gap-16 items-center">
+                  {/* Left: Hero Text & Value Prop */}
+                  <div className="space-y-8">
+                    <div>
+                      <span className="inline-block px-4 py-2 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold uppercase tracking-widest mb-6 shadow-sm border border-indigo-200/50">
+                        For Schools & Parents
+                      </span>
+                      <h2 className="text-5xl lg:text-7xl font-black text-slate-900 leading-[1.1] tracking-tight">
+                        Modern School <br/>
+                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-500">Management Platform</span>
+                      </h2>
+                    </div>
+                    <p className="text-lg text-slate-600 leading-relaxed max-w-xl">
+                      Streamline student management, attendance tracking, fee collection, and parent communication in one unified, elegant portal. Trusted by 500+ top schools.
                     </p>
+                    <div className="flex flex-col sm:flex-row gap-6 pt-4">
+                      <div className="flex items-center gap-3 text-sm font-semibold text-slate-700 bg-white/60 px-4 py-2 rounded-xl border border-slate-200 backdrop-blur-sm">
+                        <CheckCircle className="w-5 h-5 text-indigo-500" />
+                        <span>Real-time tracking</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-sm font-semibold text-slate-700 bg-white/60 px-4 py-2 rounded-xl border border-slate-200 backdrop-blur-sm">
+                        <CheckCircle className="w-5 h-5 text-indigo-500" />
+                        <span>Automated fees</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-sm font-semibold text-slate-700 bg-white/60 px-4 py-2 rounded-xl border border-slate-200 backdrop-blur-sm">
+                        <CheckCircle className="w-5 h-5 text-indigo-500" />
+                        <span>Smart portals</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right: School Login Form (MAIN CTA) */}
+                  <div className="space-y-6 relative">
+                    {/* Decorative blurred blob behind the card */}
+                    <div className="absolute -inset-4 bg-gradient-to-tr from-indigo-400 to-blue-300 opacity-20 blur-3xl rounded-full z-0"></div>
+                    {!resolvedSchool && !isSuperAdminLogMode ? (
+                      <div className="auth-card">
+                        <div>
+                          <h3 className="heading-2">School Portal Login</h3>
+                          <p className="text-sm text-slate-600 mt-2">Access your school dashboard</p>
+                        </div>
+
+                        <form onSubmit={handleSchoolCodeSubmit} className="space-y-4">
+                          <div>
+                            <label className="form-label">School Access Code</label>
+                            <div className="relative">
+                              <input
+                                id="school-code-input"
+                                type="text"
+                                maxLength={10}
+                                value={enteredSchoolCode}
+                                onChange={(e) => setEnteredSchoolCode(e.target.value.toUpperCase())}
+                                placeholder="e.g., DPS101"
+                                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-center font-mono font-bold text-lg tracking-widest"
+                                required
+                              />
+                              <Building className="w-5 h-5 text-slate-400 absolute right-4 top-3 pointer-events-none" />
+                            </div>
+                            {schoolCodeError && (
+                              <p className="text-xs text-rose-600 mt-2 font-semibold">⚠️ {schoolCodeError}</p>
+                            )}
+                          </div>
+
+                          <button
+                            type="submit"
+                            className="btn btn-primary w-full flex-center gap-2"
+                          >
+                            <ArrowRight className="icon-sm" />
+                            Continue to Login
+                          </button>
+                        </form>
+
+                        {schools.length > 0 && (
+                          <div className="border-t pt-4 space-y-3">
+                            <p className="text-caption">Sample Schools:</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {schools.map(s => (
+                                <button
+                                  key={s.id}
+                                  onClick={() => {
+                                    setEnteredSchoolCode(s.schoolCode);
+                                    setResolvedSchool(s);
+                                    setActiveSchoolId(s.id);
+                                    setLoginError(null);
+                                    setSchoolCodeError(null);
+                                  }}
+                                  className="p-3 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-lg text-center transition text-sm font-semibold text-slate-700 hover:text-blue-700"
+                                >
+                                  <p className="text-xs text-blue-600 font-bold">{s.schoolCode}</p>
+                                  <p className="text-[11px] text-slate-600 mt-0.5">{s.name.split(' ')[0]}</p>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : resolvedSchool && !isSuperAdminLogMode ? (
+                      <div className="glass-panel rounded-2xl p-8 space-y-6 animate-fade-in">
+                        <button
+                          onClick={() => {
+                            setResolvedSchool(null);
+                            setEnteredSchoolCode('');
+                            setLoginError(null);
+                          }}
+                          className="text-xs font-bold text-slate-500 hover:text-slate-700 flex items-center gap-1"
+                        >
+                          <ChevronLeft className="icon-sm" />
+                          Back
+                        </button>
+
+                        <div className="border-b pb-4">
+                          <div className="w-12 h-12 rounded-2xl bg-orange-100 flex items-center justify-center text-3xl mb-3">🏫</div>
+                          <h3 className="heading-3">{resolvedSchool.name}</h3>
+                          <p className="text-sm text-slate-600 mt-1">📍 {resolvedSchool.city}, {resolvedSchool.state}</p>
+                        </div>
+
+                        <form onSubmit={handleSchoolLogin} className="space-y-4">
+                          <div>
+                            <label className="form-label">Username or Email</label>
+                            <input
+                              id="school-user-input"
+                              type="text"
+                              value={loginUsername}
+                              onChange={(e) => setLoginUsername(e.target.value)}
+                              placeholder="admin@school.com"
+                              className="form-input"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <label className="form-label">Password</label>
+                            <input
+                              id="school-pass-input"
+                              type="password"
+                              value={loginPassword}
+                              onChange={(e) => setLoginPassword(e.target.value)}
+                              placeholder="••••••••"
+                              className="form-input"
+                              required
+                            />
+                          </div>
+
+                          {loginError && (
+                            <p className="text-xs text-rose-600 bg-rose-50 p-3 rounded-lg font-semibold">⚠️ {loginError}</p>
+                          )}
+
+                          <button
+                            type="submit"
+                            className="btn btn-primary w-full flex-center gap-2"
+                          >
+                            <Lock className="icon-sm" />
+                            Sign In
+                          </button>
+                        </form>
+                      </div>
+                    ) : isSuperAdminLogMode && !resolvedSchool ? (
+                      <div className="glass-panel rounded-2xl p-8 space-y-6 animate-fade-in">
+                        <button
+                          onClick={() => {
+                            setIsSuperAdminLogMode(false);
+                            setLoginError(null);
+                          }}
+                          className="text-xs font-bold text-slate-500 hover:text-slate-700 flex items-center gap-1"
+                        >
+                          <ChevronLeft className="icon-sm" />
+                          Back
+                        </button>
+
+                        <div>
+                          <h3 className="heading-2">Super Admin Access</h3>
+                          <p className="text-sm text-slate-600 mt-2">Manage tenants and system settings</p>
+                        </div>
+
+                        <form onSubmit={handleSuperAdminLogin} className="space-y-4">
+                          <div>
+                            <label className="form-label">Email</label>
+                            <input
+                              id="super-user-input"
+                              type="email"
+                              value={loginUsername}
+                              onChange={(e) => setLoginUsername(e.target.value)}
+                              placeholder="admin@system.local"
+                              className="form-input"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <label className="form-label">Password</label>
+                            <input
+                              id="super-pass-input"
+                              type="password"
+                              value={loginPassword}
+                              onChange={(e) => setLoginPassword(e.target.value)}
+                              placeholder="••••••••"
+                              className="form-input"
+                              required
+                            />
+                          </div>
+
+                          {loginError && (
+                            <p className="text-xs text-rose-600 bg-rose-50 p-3 rounded-lg font-semibold">⚠️ {loginError}</p>
+                          )}
+
+                          <button
+                            type="submit"
+                            className="btn-primary w-full py-3 rounded-xl font-semibold uppercase tracking-wide text-sm"
+                          >
+                            Sign In as Admin
+                          </button>
+                        </form>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* FEATURES SECTION */}
+            <section id="features" className="py-20 px-4 bg-white">
+              <div className="max-w-6xl mx-auto">
+                <div className="text-center mb-16 space-y-4">
+                  <h2 className="heading-1">Powerful Features</h2>
+                  <p className="text-lg text-slate-600">Everything you need to run your school efficiently</p>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-8">
+                  <div className="feature-card">
+                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto">
+                      <Users className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <h3 className="heading-4">Student Management</h3>
+                    <p className="text-body">Manage student profiles, attendance, grades, and fees in one place</p>
+                  </div>
+
+                  <div className="feature-card">
+                    <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mx-auto">
+                      <BookOpen className="w-6 h-6 text-emerald-600" />
+                    </div>
+                    <h3 className="heading-4">Teacher Portal</h3>
+                    <p className="text-body">Mark attendance, assign homework, and manage grades easily</p>
+                  </div>
+
+                  <div className="feature-card">
+                    <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mx-auto">
+                      <GraduationCap className="w-6 h-6 text-orange-600" />
+                    </div>
+                    <h3 className="heading-4">Parent Updates</h3>
+                    <p className="text-body">Keep parents informed about fees, attendance, and school events</p>
+                  </div>
+
+                  <div className="feature-card">
+                    <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center mx-auto">
+                      <Layers className="w-6 h-6 text-violet-600" />
+                    </div>
+                    <h3 className="heading-4">Fee Collection</h3>
+                    <p className="text-body">Track payments, generate invoices, and send reminders automatically</p>
+                  </div>
+
+                  <div className="feature-card">
+                    <div className="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center mx-auto">
+                      <Bell className="w-6 h-6 text-pink-600" />
+                    </div>
+                    <h3 className="heading-4">Notifications</h3>
+                    <p className="text-body">Send instant alerts to parents about important school updates</p>
+                  </div>
+
+                  <div className="feature-card">
+                    <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center mx-auto">
+                      <Shield className="w-6 h-6 text-teal-600" />
+                    </div>
+                    <h3 className="heading-4">Secure & Scalable</h3>
+                    <p className="text-body">Enterprise-grade security with cloud-based infrastructure</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* PRICING SECTION */}
+            <section id="pricing" className="py-20 px-4 bg-slate-50">
+              <div className="max-w-6xl mx-auto">
+                <div className="text-center mb-16 space-y-4">
+                  <h2 className="heading-1">Transparent Pricing</h2>
+                  <p className="text-lg text-slate-600">Choose the plan that works for your school</p>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-8">
+                  <div className="glass-panel rounded-2xl p-8 space-y-6 border border-slate-200 hover:border-blue-300 transition">
+                    <div>
+                      <h3 className="heading-3">Basic</h3>
+                      <p className="text-3xl font-black text-slate-900 mt-2">₹9,999<span className="text-sm text-slate-600 font-normal">/mo</span></p>
+                    </div>
+                    <ul className="space-y-3 text-sm text-slate-700">
+                      <li className="flex-center-gap"><CheckCircle className="w-4 h-4 text-emerald-500" /> Up to 500 students</li>
+                      <li className="flex-center-gap"><CheckCircle className="w-4 h-4 text-emerald-500" /> Attendance tracking</li>
+                      <li className="flex-center-gap"><CheckCircle className="w-4 h-4 text-emerald-500" /> Basic reporting</li>
+                    </ul>
+                    <button className="w-full py-2.5 border border-slate-300 rounded-lg font-semibold text-slate-900 hover:bg-slate-100 transition">Get Started</button>
+                  </div>
+
+                  <div className="glass-panel rounded-2xl p-8 space-y-6 border-2 border-blue-500 shadow-lg scale-105">
+                    <div>
+                      <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full mb-3">POPULAR</span>
+                      <h3 className="heading-3">Professional</h3>
+                      <p className="text-3xl font-black text-slate-900 mt-2">₹14,999<span className="text-sm text-slate-600 font-normal">/mo</span></p>
+                    </div>
+                    <ul className="space-y-3 text-sm text-slate-700">
+                      <li className="flex-center-gap"><CheckCircle className="w-4 h-4 text-emerald-500" /> 500-1000 students</li>
+                      <li className="flex-center-gap"><CheckCircle className="w-4 h-4 text-emerald-500" /> Full parent portal</li>
+                      <li className="flex-center-gap"><CheckCircle className="w-4 h-4 text-emerald-500" /> Fee management</li>
+                      <li className="flex-center-gap"><CheckCircle className="w-4 h-4 text-emerald-500" /> Priority support</li>
+                    </ul>
+                    <button className="w-full py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">Try Free</button>
+                  </div>
+
+                  <div className="glass-panel rounded-2xl p-8 space-y-6 border border-slate-200 hover:border-blue-300 transition">
+                    <div>
+                      <h3 className="heading-3">Enterprise</h3>
+                      <p className="text-3xl font-black text-slate-900 mt-2">Custom</p>
+                    </div>
+                    <ul className="space-y-3 text-sm text-slate-700">
+                      <li className="flex-center-gap"><CheckCircle className="w-4 h-4 text-emerald-500" /> Multi-campus support</li>
+                      <li className="flex-center-gap"><CheckCircle className="w-4 h-4 text-emerald-500" /> Custom integrations</li>
+                      <li className="flex-center-gap"><CheckCircle className="w-4 h-4 text-emerald-500" /> Dedicated support</li>
+                    </ul>
+                    <button className="w-full py-2.5 border border-slate-300 rounded-lg font-semibold text-slate-900 hover:bg-slate-100 transition">Contact Sales</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* CONTACT/SUPPORT SECTION */}
+            <section id="contact" className="py-20 px-4 bg-white">
+              <div className="max-w-4xl mx-auto text-center space-y-8">
+                <div className="space-y-4">
+                  <h2 className="heading-1">Get Support</h2>
+                  <p className="text-lg text-slate-600">We're here to help you succeed</p>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-6">
+                  <a href="mailto:support@aviralvidhya.com" className="glass-panel rounded-xl p-6 border border-slate-200 hover:border-blue-300 transition space-y-3">
+                    <div className="text-2xl">📧</div>
+                    <h3 className="font-bold text-slate-900">Email Support</h3>
+                    <p className="text-body">support@aviralvidhya.com</p>
+                  </a>
+                  <a href="tel:+919876543210" className="glass-panel rounded-xl p-6 border border-slate-200 hover:border-blue-300 transition space-y-3">
+                    <div className="text-2xl">📞</div>
+                    <h3 className="font-bold text-slate-900">Phone Support</h3>
+                    <p className="text-body">+91 9876-543-210</p>
+                  </a>
+                  <a href="#" className="glass-panel rounded-xl p-6 border border-slate-200 hover:border-blue-300 transition space-y-3">
+                    <div className="text-2xl">💬</div>
+                    <h3 className="font-bold text-slate-900">Live Chat</h3>
+                    <p className="text-body">Chat with us now</p>
+                  </a>
+                </div>
+              </div>
+            </section>
+          </div>
+        ) : (
+          <div id="management-view-container" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-6">
+            
+            {/* Dynamic Header */}
+            <IndianMotifHeader 
+              title="AviralVidhya School Management" 
+              subtitle="Modern, centralized school management for multi-tenant organizations."
+            />
+
+            {/* Error Notification */}
+            {syncError && (
+              <div id="firestore-error-reporter" className="bg-rose-50 border-2 border-rose-200 text-rose-900 rounded-2xl p-4 text-xs space-y-2 animate-bounce-short">
+                <div className="flex items-center gap-2 font-bold uppercase text-rose-800">
+                  <AlertTriangle className="w-5 h-5 text-rose-600" />
+                  <span>System Warning</span>
+                </div>
+                <p>A recent state synchronization write was refused by security rules. Secure system details shown below:</p>
+                <pre className="p-3 bg-rose-100 text-rose-900 rounded-xl font-mono text-[10.5px] overflow-x-auto whitespace-pre-wrap leading-relaxed">
+                  {syncError}
+                </pre>
+                <button
+                  onClick={() => setSyncError(null)}
+                  className="text-[11px] font-extrabold text-blue-700 underline hover:text-blue-900 cursor-pointer"
+                >
+                  Acknowledge and Resolve
+                </button>
+              </div>
+            )}
+
+            {/* SYSTEM AUTHENTICATION SWITCHER (ROLE CONTROL PANEL) */}
+            {loginRole === 'super_admin' && (
+              <div id="system-auth-hub" className="dashboard-card">
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                  <div>
+                    <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-1.5">
+                      <Layers className="w-4.5 h-4.5 text-blue-600" />
+                      <span>Switch Active Workspace Portal View</span>
+                    </h2>
+                    <p className="text-xs text-slate-500">Fast-switch tenant workflows in this authenticated session</p>
+                  </div>
+
+                  {/* School isolation select element - displays only if not Super Admin */}
+                  {activeRole !== 'super_admin' && (
+                    <div className="flex items-center gap-2 bg-slate-50 border border-slate-300 px-3 py-1.5 rounded-lg text-xs w-full sm:w-fit">
+                      <label htmlFor="school-context-dropdown" className="font-bold text-slate-600 uppercase tracking-wider">Active School:</label>
+                      <select
+                        id="school-context-dropdown"
+                        value={activeSchoolId}
+                        onChange={(e) => setActiveSchoolId(e.target.value)}
+                        className="bg-transparent text-slate-900 font-extrabold focus:outline-none cursor-pointer"
+                      >
+                        {schools.map(s => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+                    </div>
                   )}
                 </div>
 
-                <button
-                  type="submit"
-                  className="w-full py-3.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-505 text-white font-extrabold text-xs uppercase tracking-widest rounded-2xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 border-0"
-                >
-                  <span>Verify and Open School Portal</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </form>
-
-              {/* Suggestions / Hints */}
-              <div className="border-t pt-4 space-y-3.5">
-                <p className="text-[11px] font-black text-slate-400 text-center uppercase tracking-widest">
-                  💡 Active Registered Campus Codes
-                </p>
-                <div className="grid grid-cols-3 gap-2.5">
-                  {schools.map(s => (
-                    <button
-                      key={s.id}
-                      onClick={() => {
-                        setEnteredSchoolCode(s.schoolCode);
-                        setResolvedSchool(s);
-                        setActiveSchoolId(s.id);
-                        setLoginError(null);
-                        setSchoolCodeError(null);
-                      }}
-                      className="p-3 bg-slate-50 hover:bg-orange-50 border hover:border-orange-200 rounded-xl text-center transition-all cursor-pointer text-slate-900 font-bold"
-                    >
-                      <p className="text-xs font-extrabold text-slate-900">{s.schoolCode}</p>
-                      <p className="text-[9.5px] text-slate-500 truncate mt-0.5" title={s.name}>{s.name.split(' ')[0]}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Link to go to Super Admin gateway */}
-              <div className="text-center pt-2 border-t">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsSuperAdminLogMode(true);
-                    setLoginUsername('');
-                    setLoginPassword('');
-                    setLoginError(null);
-                  }}
-                  className="text-xs text-indigo-700 font-bold hover:underline hover:text-indigo-900 cursor-pointer inline-flex items-center gap-1.5"
-                >
-                  <Shield className="w-3.5 h-3.5" />
-                  <span>Access Central Super Admin Governance Portal</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* SCENARIO B: SCHOOL WHITELABELED CORE LOGIN STEP */}
-          {resolvedSchool && !isSuperAdminLogMode && (
-            <div 
-              id="school-tenant-login-screen" 
-              className="bg-white border-2 border-slate-200 rounded-3xl p-6 sm:p-10 max-w-xl mx-auto shadow-2xl space-y-6 animate-fade-in text-left"
-            >
-              
-              {/* Back button to choose another school code */}
-              <button
-                type="button"
-                onClick={() => {
-                  setResolvedSchool(null);
-                  setEnteredSchoolCode('');
-                  setLoginError(null);
-                }}
-                className="text-xs text-slate-500 hover:text-slate-800 font-bold inline-flex items-center gap-1.5 cursor-pointer hover:-translate-x-0.5 transition-all text-left"
-              >
-                <ChevronLeft className="w-4 h-4 text-slate-500 inline" />
-                <span>Choose different School Code / दूसरा स्कूल कोड बदलें</span>
-              </button>
-
-              {/* School whitelabel logos and brand title */}
-              <div className="border-b pb-4 space-y-2">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow-md bg-orange-100 border border-orange-200 shrink-0">
-                    🏫
-                  </div>
-                  <div>
-                    <span className="text-[9.5px] font-black text-orange-650 tracking-widest uppercase bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-md">
-                      {resolvedSchool.schoolCode} Secure ERP Gateway
-                    </span>
-                    <h2 className="text-xl font-black text-slate-900 tracking-tight leading-tight mt-1">
-                      {resolvedSchool.name}
-                    </h2>
-                    <p className="text-xs text-slate-550">
-                      📍 {resolvedSchool.city}, {resolvedSchool.state}
-                    </p>
-                  </div>
-                </div>
-
-                {resolvedSchool.contactMobile && (
-                  <div className="text-[10px] text-slate-500 font-medium bg-slate-50 p-2 rounded-xl border flex items-center justify-between gap-2 mt-3 flex-wrap">
-                    <span>📞 {resolvedSchool.contactMobile}</span>
-                    <span>✉️ {resolvedSchool.contactEmail}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Elegant Auto-detection Notice Box */}
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-start gap-3">
-                <div className="p-2 bg-indigo-50 text-indigo-700 rounded-xl shrink-0">
-                  <UserCheck className="w-4 h-4" />
-                </div>
-                <div className="text-xs text-slate-650 space-y-0.5">
-                  <span className="font-bold text-slate-1000 block text-xs">Unified Campus Entrance / एकीकृत प्रवेश द्वार</span>
-                  <p className="leading-relaxed">
-                    Simply enter your Username or Email. Our unified security engine will automatically detect and direct you to the School Admin, Teacher, or Parent system based on your account specifications.
-                  </p>
-                </div>
-              </div>
-
-              {/* Login form with credentials */}
-              <form onSubmit={handleSchoolLogin} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label htmlFor="school-user-input" className="text-xs font-black text-slate-705 uppercase tracking-wider block">
-                    Username or Email / उपयोगकर्ता नाम (ईमेल)
-                  </label>
-                  <input
-                    id="school-user-input"
-                    type="text"
-                    value={loginUsername}
-                    onChange={(e) => setLoginUsername(e.target.value)}
-                    placeholder="Provide principal@saraswati.edu, etc."
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-xs tracking-wide focus:outline-none focus:ring-2 focus:ring-indigo-505/30 text-slate-900"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label htmlFor="school-pass-input" className="text-xs font-black text-slate-705 uppercase tracking-wider block">
-                    Security Pass PIN / पासवर्ड पिन
-                  </label>
-                  <input
-                    id="school-pass-input"
-                    type="password"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    placeholder="Enter security pin"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-xs font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-505/30 text-slate-900"
-                    required
-                  />
-                </div>
-
-                {loginError && (
-                  <p className="text-xs text-rose-700 bg-rose-50 border border-rose-150 p-3 rounded-xl font-bold">
-                    ⚠️ {loginError}
-                  </p>
-                )}
-
-                <button
-                  type="submit"
-                  className="w-full py-3.5 bg-gradient-to-r from-slate-900 to-indigo-950 text-white font-extrabold text-xs uppercase tracking-widest rounded-xl hover:opacity-95 shadow-md border-0 flex items-center justify-center gap-1.5 cursor-pointer transition-all"
-                >
-                  <Lock className="w-3.5 h-3.5" />
-                  <span>Access Secure Desk Dashboard / डैशबोर्ड एक्सेस करें</span>
-                </button>
-              </form>
-
-              {/* Auto Preset Help buttons dynamically fetched based on active role for fast grading and review! */}
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4.5 space-y-4 shadow-sm">
-                <p className="text-[10.5px] font-black text-slate-500 uppercase tracking-widest text-center flex items-center justify-center gap-1.5">
-                  <HelpCircle className="w-3.5 h-3.5 text-indigo-650" />
-                  <span>Interactive Single-Click Presets / त्वरित साइन-इन</span>
-                </p>
-
-                <div className="space-y-3.5 text-xs text-left">
-                  {/* Category 1: Admin */}
-                  <div>
-                    <span className="text-[9.5px] font-black uppercase text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                      School Admin / स्कूल प्रशासक
-                    </span>
-                    <div className="mt-1.5">
-                      <button 
-                        type="button"
-                        onClick={() => {
-                          setLoginUsername(resolvedSchool.adminUsername);
-                          setLoginPassword(resolvedSchool.adminPassword);
-                        }}
-                        className="w-full py-2 px-3 bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-lg text-emerald-850 font-bold text-[11.5px] text-left flex justify-between items-center transition-all cursor-pointer shadow-xs group"
-                      >
-                        <span className="truncate text-slate-800">👤 Administrator: {resolvedSchool.adminUsername}</span>
-                        <code className="bg-slate-100 group-hover:bg-emerald-100 text-slate-700 px-1.5 py-0.5 rounded font-mono text-[10px]">
-                          PIN: {resolvedSchool.adminPassword}
-                        </code>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Category 2: Teachers */}
-                  <div>
-                    <span className="text-[9.5px] font-black uppercase text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
-                      Faculty Teachers / कक्षा शिक्षक
-                    </span>
-                    <div className="mt-1.5 grid grid-cols-1 gap-1.5">
-                      {teachers.filter(t => t.schoolId === resolvedSchool.id).length === 0 ? (
-                        <p className="text-slate-400 text-[10px] italic">No active faculty found.</p>
-                      ) : (
-                        teachers.filter(t => t.schoolId === resolvedSchool.id).slice(0, 2).map(t => (
-                          <button
-                            key={t.id}
-                            type="button"
-                            onClick={() => {
-                              setLoginUsername(t.teacherUsername || t.email);
-                              setLoginPassword(t.teacherPassword || 'password');
-                            }}
-                            className="w-full py-2 px-3 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-lg text-indigo-950 text-[11px] font-medium text-left flex justify-between items-center transition-all cursor-pointer shadow-xs group"
-                          >
-                            <span className="truncate text-slate-800">👨‍🏫 {t.name} ({t.subject})</span>
-                            <code className="bg-slate-100 group-hover:bg-indigo-150 text-slate-700 px-1.5 py-0.5 rounded font-mono text-[9.5px]">
-                              PIN: {t.teacherPassword}
-                            </code>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Category 3: Parents */}
-                  <div>
-                    <span className="text-[9.5px] font-black uppercase text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                      Parents & Guardians / अभिभावक
-                    </span>
-                    <div className="mt-1.5 grid grid-cols-1 gap-1.5">
-                      {students.filter(s => s.schoolId === resolvedSchool.id).length === 0 ? (
-                        <p className="text-slate-400 text-[10px] italic">No parent profiles.</p>
-                      ) : (
-                        students.filter(s => s.schoolId === resolvedSchool.id).slice(0, 2).map(st => (
-                          <button
-                            key={st.id}
-                            type="button"
-                            onClick={() => {
-                              setLoginUsername(st.parentUsername);
-                              setLoginPassword(st.parentPassword);
-                            }}
-                            className="w-full py-2 px-3 bg-white hover:bg-amber-50 border border-slate-200 hover:border-amber-300 rounded-lg text-amber-955 text-[11px] font-medium text-left flex justify-between items-center transition-all cursor-pointer shadow-xs group"
-                          >
-                            <span className="truncate text-slate-800">👪 Parent of {st.name} ({st.class})</span>
-                            <code className="bg-slate-100 group-hover:bg-amber-100 text-slate-700 px-1.5 py-0.5 rounded font-mono text-[9.5px]">
-                              PIN: {st.parentPassword}
-                            </code>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          )}
-
-          {/* SCENARIO C: CENTRAL SUPER ADMIN ACCESS GATEWAY */}
-          {isSuperAdminLogMode && !resolvedSchool && (
-            <div id="super-admin-core-login" className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 max-w-lg mx-auto shadow-lg space-y-6">
-              
-              <button
-                type="button"
-                onClick={() => {
-                  setIsSuperAdminLogMode(false);
-                  setLoginError(null);
-                }}
-                className="text-xs text-slate-500 hover:text-slate-800 font-semibold inline-flex items-center gap-1.5 cursor-pointer hover:-translate-x-0.5 transition-all text-left"
-              >
-                <ChevronLeft className="w-4 h-4 text-slate-500 inline" />
-                <span>Back to School Code Gate</span>
-              </button>
-
-              <div className="text-center space-y-2 animate-fade-in">
-                <div className="p-3 bg-indigo-950 text-amber-400 rounded-2xl w-fit mx-auto shadow-md">
-                  <Shield className="w-8 h-8" />
-                </div>
-                <h2 className="text-lg font-black text-slate-900 tracking-wide uppercase">Rashtriya Central Command</h2>
-                <p className="text-xs text-slate-500">Provide official developer credentials to connect with cloud dashboard rights.</p>
-              </div>
-
-              <form onSubmit={handleSuperAdminLogin} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label htmlFor="super-user-input" className="text-[10.5px] font-black text-slate-500 uppercase tracking-wider block">Super User ID email</label>
-                  <input
-                    id="super-user-input"
-                    type="email"
-                    value={loginUsername}
-                    onChange={(e) => setLoginUsername(e.target.value)}
-                    placeholder="superadmin@aviralvidhya.com"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label htmlFor="super-pass-input" className="text-[10.5px] font-black text-slate-500 uppercase tracking-wider block">Central Admin Keycode Password</label>
-                  <input
-                    id="super-pass-input"
-                    type="password"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    placeholder="••••••••••••"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none"
-                    required
-                  />
-                </div>
-
-                {loginError && (
-                  <p className="text-xs text-rose-700 bg-rose-50 border border-rose-100 p-2.5 rounded-xl font-bold font-sans">
-                    ⚠️ {loginError}
-                  </p>
-                )}
-
-                <button
-                  type="submit"
-                  className="w-full py-3 bg-gradient-to-r from-indigo-950 to-indigo-900 hover:opacity-95 text-white font-extrabold text-[11px] uppercase tracking-widest rounded-xl transition-all cursor-pointer shadow-md text-center border-0 block"
-                >
-                  Verify Central Admin Key
-                </button>
-              </form>
-
-              <div className="bg-slate-50 border p-4.5 rounded-2xl text-xs space-y-1.5">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Super Admin Sandbox Key</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLoginUsername('superadmin@aviralvidhya.com');
-                    setLoginPassword('admin');
-                  }}
-                  className="w-full py-2 bg-indigo-50 border border-indigo-150 rounded-xl text-indigo-750 font-bold transition-all text-xs cursor-pointer"
-                >
-                  Apply credentials: superadmin@aviralvidhya.com (admin)
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div id="erp-view-container" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-6">
-          
-          {/* Dynamic Indian Pattern Logo & Header */}
-          <IndianMotifHeader 
-            title="Vidyalaya multi-tenant ERP" 
-            subtitle="A beautifully crafted, compliant central management platform for registered educational tenancies and accessible parent circular portals across India."
-          />
-
-          {/* Global Firestore Synchronizer Error Notification */}
-          {syncError && (
-            <div id="firestore-error-reporter" className="bg-rose-50 border-2 border-rose-200 text-rose-900 rounded-2xl p-4 text-xs space-y-2 animate-bounce-short">
-              <div className="flex items-center gap-2 font-bold uppercase text-rose-800">
-                <AlertTriangle className="w-5 h-5 text-rose-600" />
-                <span>Firestore System Warning</span>
-              </div>
-              <p>A recent state synchronization write was refused by security rules. Secure system details shown below:</p>
-              <pre className="p-3 bg-rose-950 text-rose-100 rounded-xl font-mono text-[10.5px] overflow-x-auto whitespace-pre-wrap leading-relaxed">
-                {syncError}
-              </pre>
-              <button
-                onClick={() => setSyncError(null)}
-                className="text-[11px] font-extrabold text-indigo-700 underline hover:text-indigo-900 cursor-pointer"
-              >
-                Acknowledge and Resolve
-              </button>
-            </div>
-          )}
-
-          {/* SYSTEM AUTHENTICATION SWITCHER (ROLE CONTROL PANEL) */}
-          <div id="system-auth-hub" className="bg-white border border-slate-200 rounded-2.5xl p-5 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-              <div>
-                <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-1.5">
-                  <Layers className="w-4.5 h-4.5 text-indigo-600" />
-                  <span>Switch Active Workspace Portal View</span>
-                </h2>
-                <p className="text-xs text-slate-500">Fast-switch tenant workflows in this authenticated session</p>
-              </div>
-
-              {/* School isolation select element - displays only if not Super Admin */}
-              {activeRole !== 'super_admin' && (
-                <div className="flex items-center gap-2 bg-slate-50 border px-3 py-1.5 rounded-xl text-xs w-full sm:w-fit">
-                  <label htmlFor="school-context-dropdown" className="font-bold text-slate-500 uppercase tracking-wider">Active School:</label>
-                  <select
-                    id="school-context-dropdown"
-                    value={activeSchoolId}
-                    onChange={(e) => setActiveSchoolId(e.target.value)}
-                    className="bg-transparent text-slate-900 font-extrabold focus:outline-none cursor-pointer"
+                {/* Role selection tab button bar */}
+                <div id="role-bar" className="grid grid-cols-1 sm:grid-cols-3 gap-3" role="tablist" aria-label="Portal Navigation Actions">
+                  
+                  {/* Super Admin Tab */}
+                  <button
+                    onClick={() => setActiveRole('super_admin')}
+                    className={`flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
+                      activeRole === 'super_admin' 
+                        ? 'bg-blue-50 border-blue-300 text-slate-900 shadow-md' 
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                    role="tab"
+                    aria-selected={activeRole === 'super_admin'}
                   >
-                    {schools.map(s => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
+                    <div className="flex-center-gap-lg">
+                      <div className={`p-2.5 rounded-lg ${activeRole === 'super_admin' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+                        <Shield className="icon-md" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider">Super Admin View</p>
+                        <p className="text-[11px] opacity-80 mt-0.5">Feature & tenant allocation</p>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 opacity-70" />
+                  </button>
+
+                  {/* School Admin Tab */}
+                  <button
+                    onClick={() => setActiveRole('school_admin')}
+                    className={`flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
+                      activeRole === 'school_admin' 
+                        ? 'bg-orange-50 border-orange-300 text-slate-900 shadow-md' 
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                    role="tab"
+                    aria-selected={activeRole === 'school_admin'}
+                  >
+                    <div className="flex-center-gap-lg">
+                      <div className={`p-2.5 rounded-lg ${activeRole === 'school_admin' ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 text-slate-600'}`}>
+                        <GraduationCap className="icon-md" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider">School Admin View</p>
+                        <p className="text-[11px] opacity-80 mt-0.5">Memos, enrollments & staff</p>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 opacity-70" />
+                  </button>
+
+                  {/* Parent Portal Tab */}
+                  <button
+                    onClick={() => setActiveRole('parent')}
+                    className={`flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
+                      activeRole === 'parent' 
+                        ? 'bg-rose-50 border-rose-300 text-slate-900 shadow-md' 
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                    role="tab"
+                    aria-selected={activeRole === 'parent'}
+                  >
+                    <div className="flex-center-gap-lg">
+                      <div className={`p-2.5 rounded-lg ${activeRole === 'parent' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'}`}>
+                        <Users className="icon-md" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider">Parent Portal View</p>
+                        <p className="text-[11px] opacity-80 mt-0.5">Homework, fees & notices</p>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 opacity-70" />
+                  </button>
+
                 </div>
-              )}
+              </div>
+            )}
+
+            {/* LOADING INDICATOR */}
+            {isLoading ? (
+              <div id="management-loader" className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-3">
+                <RefreshCw className="w-8 h-8 text-blue-700 mx-auto animate-spin" />
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Verifying database synchronization, please wait...</p>
+              </div>
+            ) : (
+              <main id="main-content-canvas">
+                {activeRole === 'super_admin' && (
+                  <SuperAdminDashboard 
+                    schools={schools}
+                    onUpdateSchoolFeatures={handleUpdateSchoolFeatures}
+                    onAddSchool={handleAddSchool}
+                    isFirebaseActive={firebaseActive}
+                  />
+                )}
+
+                {(activeRole === 'school_admin' || activeRole === 'accountant' || activeRole === 'principle') && (
+                  <SchoolAdminDashboard 
+                    schoolId={activeSchoolId}
+                    role={activeRole}
+                    schools={schools}
+                    students={students}
+                    teachers={teachers}
+                    notices={notices}
+                    onAddStudent={handleAddStudent}
+                    onAddNotice={handleAddNotice}
+                    onDeleteNotice={handleDeleteNotice}
+                    onDeleteStudent={handleDeleteStudent}
+                    onAddTeacher={handleAddTeacher}
+                    onDeleteTeacher={handleDeleteTeacher}
+                  />
+                )}
+
+                {activeRole === 'teacher' && selectedSchoolInfo && (
+                  <TeacherDashboard 
+                    teacher={loggedInTeacher || teachers.find(t => t.schoolId === activeSchoolId) || {} as any}
+                    school={selectedSchoolInfo}
+                    students={students}
+                    notices={notices}
+                    onAddNotice={handleAddNotice}
+                    onAddHomeworkToClass={handleAddHomeworkToClass}
+                    onMarkAttendance={handleMarkAttendance}
+                  />
+                )}
+
+                {activeRole === 'parent' && (
+                  <ParentPortal 
+                    schoolId={activeSchoolId}
+                    schools={schools}
+                    students={students}
+                    notices={notices}
+                    onFeePayment={handleFeePayment}
+                  />
+                )}
+              </main>
+            )}
+
+          </div>
+        )}
+      </main>
+
+      {/* FOOTER */}
+      {!isAuthenticated && (
+        <footer className="bg-slate-900 text-slate-200 py-12 px-4">
+          <div className="max-w-6xl mx-auto grid md:grid-cols-4 gap-8 mb-8">
+            <div className="space-y-4">
+              <h3 className="font-black text-white text-lg">AviralVidhya</h3>
+              <p className="text-sm text-slate-400">Modern ERP platform for schools across India.</p>
+              <div className="flex gap-3">
+                <a href="#" className="text-slate-400 hover:text-white">Twitter</a>
+                <a href="#" className="text-slate-400 hover:text-white">LinkedIn</a>
+                <a href="#" className="text-slate-400 hover:text-white">Facebook</a>
+              </div>
             </div>
 
-            {/* Role selection tab button bar */}
-            <div id="role-bar" className="grid grid-cols-1 sm:grid-cols-3 gap-3" role="tablist" aria-label="Portal Navigation Actions">
-              
-              {/* Super Admin Tab */}
-              <button
-                onClick={() => setActiveRole('super_admin')}
-                className={`flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
-                  activeRole === 'super_admin' 
-                    ? 'bg-indigo-950 border-indigo-900 text-white shadow-md' 
-                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                }`}
-                role="tab"
-                aria-selected={activeRole === 'super_admin'}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`p-2.5 rounded-lg ${activeRole === 'super_admin' ? 'bg-indigo-900 text-amber-400' : 'bg-slate-100 text-indigo-700'}`}>
-                    <Shield className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wider">Super Admin View</p>
-                    <p className="text-[11px] opacity-80 mt-0.5">Feature & tenant allocation</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 opacity-70" />
-              </button>
+            <div>
+              <h4 className="font-bold text-white mb-4">Product</h4>
+              <ul className="space-y-2 text-sm text-slate-400">
+                <li><a href="#features" className="hover:text-white">Features</a></li>
+                <li><a href="#pricing" className="hover:text-white">Pricing</a></li>
+                <li><a href="#contact" className="hover:text-white">Support</a></li>
+              </ul>
+            </div>
 
-              {/* School Admin Tab */}
-              <button
-                onClick={() => setActiveRole('school_admin')}
-                className={`flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
-                  activeRole === 'school_admin' 
-                    ? 'bg-slate-900 border-slate-950 text-white shadow-md' 
-                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                }`}
-                role="tab"
-                aria-selected={activeRole === 'school_admin'}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`p-2.5 rounded-lg ${activeRole === 'school_admin' ? 'bg-orange-950 text-amber-400' : 'bg-slate-100 text-slate-700'}`}>
-                    <GraduationCap className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wider">School Admin View</p>
-                    <p className="text-[11px] opacity-80 mt-0.5">Memos, enrollments & staff</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 opacity-70" />
-              </button>
+            <div>
+              <h4 className="font-bold text-white mb-4">Company</h4>
+              <ul className="space-y-2 text-sm text-slate-400">
+                <li><a href="#" className="hover:text-white">About</a></li>
+                <li><a href="#" className="hover:text-white">Blog</a></li>
+                <li><a href="#" className="hover:text-white">Careers</a></li>
+              </ul>
+            </div>
 
-              {/* Teacher Portal Tab */}
-              <button
-                onClick={() => setActiveRole('teacher')}
-                className={`flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
-                  activeRole === 'teacher' 
-                    ? 'bg-emerald-600 text-white border-emerald-700 shadow-md' 
-                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                }`}
-                role="tab"
-                aria-selected={activeRole === 'teacher'}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`p-2.5 rounded-lg ${activeRole === 'teacher' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-emerald-600'}`}>
-                    <BookOpen className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wider">Teacher View</p>
-                    <p className="text-[11px] opacity-80 mt-0.5">Classes, homework & grading</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 opacity-70" />
-              </button>
-
-              {/* Parent Portal Tab */}
-              <button
-                onClick={() => setActiveRole('parent')}
-                className={`flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
-                  activeRole === 'parent' 
-                    ? 'bg-orange-655 bg-gradient-to-r from-orange-600 to-amber-600 text-white border-orange-700 shadow-md shadow-orange-650/10' 
-                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                }`}
-                role="tab"
-                aria-selected={activeRole === 'parent'}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`p-2.5 rounded-lg ${activeRole === 'parent' ? 'bg-orange-700 text-white' : 'bg-slate-100 text-orange-600'}`}>
-                    <BookOpen className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wider">Parent Portal View</p>
-                    <p className="text-[11px] opacity-80 mt-0.5">Dual-lang homework & fees</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 opacity-70" />
-              </button>
-
+            <div>
+              <h4 className="font-bold text-white mb-4">Legal</h4>
+              <ul className="space-y-2 text-sm text-slate-400">
+                <li><a href="#" className="hover:text-white">Privacy</a></li>
+                <li><a href="#" className="hover:text-white">Terms</a></li>
+                <li><a href="#" className="hover:text-white">Security</a></li>
+              </ul>
             </div>
           </div>
 
-          {/* LOADING INDICATOR */}
-          {isLoading ? (
-            <div id="erp-loader" className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-3">
-              <RefreshCw className="w-8 h-8 text-indigo-700 mx-auto animate-spin" />
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Verifying database synchronization, please wait...</p>
-            </div>
-          ) : (
-            <main id="main-content-canvas">
-              {activeRole === 'super_admin' && (
-                <SuperAdminDashboard 
-                  schools={schools}
-                  onUpdateSchoolFeatures={handleUpdateSchoolFeatures}
-                  onAddSchool={handleAddSchool}
-                  isFirebaseActive={firebaseActive}
-                />
-              )}
-
-              {activeRole === 'school_admin' && (
-                <SchoolAdminDashboard 
-                  schoolId={activeSchoolId}
-                  schools={schools}
-                  students={students}
-                  teachers={teachers}
-                  notices={notices}
-                  onAddStudent={handleAddStudent}
-                  onAddNotice={handleAddNotice}
-                  onDeleteNotice={handleDeleteNotice}
-                  onDeleteStudent={handleDeleteStudent}
-                  onAddTeacher={handleAddTeacher}
-                  onDeleteTeacher={handleDeleteTeacher}
-                />
-              )}
-
-              {activeRole === 'teacher' && selectedSchoolInfo && (
-                <TeacherDashboard 
-                  teacher={loggedInTeacher || teachers.find(t => t.schoolId === activeSchoolId) || {} as any}
-                  school={selectedSchoolInfo}
-                  students={students}
-                  notices={notices}
-                  onAddNotice={handleAddNotice}
-                  onAddHomeworkToClass={handleAddHomeworkToClass}
-                  onMarkAttendance={handleMarkAttendance}
-                />
-              )}
-
-              {activeRole === 'parent' && (
-                <ParentPortal 
-                  schoolId={activeSchoolId}
-                  schools={schools}
-                  students={students}
-                  notices={notices}
-                  onFeePayment={handleFeePayment}
-                />
-              )}
-            </main>
-          )}
-
-        </div>
+          <div className="border-t border-slate-700 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-slate-400">
+            <p>&copy; 2024 AviralVidhya. All rights reserved.</p>
+            <p>Made with ❤️ for Indian schools</p>
+          </div>
+        </footer>
       )}
     </div>
   );

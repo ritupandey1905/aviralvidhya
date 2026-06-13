@@ -132,18 +132,18 @@ export default function TeacherDashboard({
   const activeTheme = themeColors[school.primaryColor] || themeColors.indigo;
 
   return (
-    <div id="teacher-dashboard-container" className="space-y-8 animate-fade-in">
+    <div id="teacher-dashboard-container" className="space-y-8 animate-fade-in glass-panel border border-slate-200 bg-white shadow-sm p-6">
       
       {/* Teacher Profile Header card */}
-      <div id="teacher-profile-banner" className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div id="teacher-profile-banner" className="bg-slate-50 border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-4.5">
           <div className={`p-4 rounded-2xl ${activeTheme.bg} ${activeTheme.text}`}>
             <User className="w-8 h-8" />
           </div>
           <div>
             <span className="text-[10px] uppercase font-black tracking-widest text-slate-400">Authenticated Staff Faculty</span>
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900">Welcome, Professor {teacher.name}</h2>
-            <p className="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-2">
+            <h2 className="text-xl sm:text-2xl font-black text-white">Welcome, Professor {teacher.name}</h2>
+            <p className="text-xs text-slate-400 mt-1 flex flex-wrap items-center gap-2">
               <span className="font-bold text-slate-700">Subject Specialty:</span> 
               <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${activeTheme.bg} ${activeTheme.text}`}>
                 {teacher.subject}
@@ -189,7 +189,7 @@ export default function TeacherDashboard({
           {/* Post HomeWork assignment card */}
           <div id="teacher-post-homework-card" className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
             <div className={`flex items-center gap-2 pb-2 border-b ${activeTheme.border} ${activeTheme.text}`}>
-              <BookOpen className="w-5 h-5" />
+              <BookOpen className="icon-md" />
               <h3 className="font-extrabold text-sm uppercase tracking-wider">Assign Class Homework</h3>
             </div>
 
@@ -244,7 +244,7 @@ export default function TeacherDashboard({
           {/* Quick Notice board announcer card */}
           <div id="teacher-post-notice-card" className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
             <div className={`flex items-center gap-2 pb-2 border-b ${activeTheme.border} ${activeTheme.text}`}>
-              <PlusCircle className="w-5 h-5" />
+              <PlusCircle className="icon-md" />
               <h3 className="font-extrabold text-sm uppercase tracking-wider">Broadcast School Circular</h3>
             </div>
 
@@ -323,7 +323,7 @@ export default function TeacherDashboard({
                 </div>
               ) : (
                 schoolStudents.map((student) => (
-                  <div key={student.id} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:bg-slate-50/50 transition-colors">
+                  <div key={student.id} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:bg-slate-100 transition-colors">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <strong className="text-sm font-bold text-slate-900">{student.name}</strong>
@@ -371,7 +371,7 @@ export default function TeacherDashboard({
                 <p className="text-xs text-slate-400 text-center py-6">No notifications on notice board.</p>
               ) : (
                 schoolNotices.map((n) => (
-                  <div key={n.id} className="p-4 rounded-xl border border-slate-150 bg-slate-50/50 space-y-1">
+                  <div key={n.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-1">
                     <div className="flex justify-between items-start gap-2 flex-wrap">
                       <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wide">{n.title}</h4>
                       <span className="text-[10px] bg-slate-200 font-bold px-2 py-0.5 rounded text-slate-650 capitalize">

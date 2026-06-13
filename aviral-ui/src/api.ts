@@ -45,17 +45,18 @@ const fetchJson = async (url: string, options?: RequestInit) => {
   });
 
   if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    const errorMessage = error?.error?.message || `HTTP error! status: ${response.status}`;
+
     // Handle 401 Unauthorized - token might be expired
     if (response.status === 401) {
       clearTokens();
-      // You could trigger a redirect to login here
-      throw new Error('Unauthorized - please login again');
+      // Use the backend's error message if available, otherwise default to generic
+      throw new Error(error?.error?.message ? errorMessage : 'Unauthorized - please login again');
     }
-    
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error?.error?.message || `HTTP error! status: ${response.status}`);
-  }
 
+    throw new Error(errorMessage);
+  }
   const data = await response.json();
   // Extract data from ApiResponse format
   return data?.data !== undefined ? data.data : data;
@@ -78,11 +79,16 @@ const deleteData = (url: string) => fetchJson(url, {
 });
 
 // --- Authentication ---
-export const login = async (username: string, password: string, schoolId: string) => {
+export const login = async (username: string, password: string, schoolId?: string) => {
+  const payload: any = { username, password };
+  if (schoolId) {
+    payload.schoolId = schoolId;
+  }
+
   const response = await fetchJson(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password, schoolId })
+    body: JSON.stringify(payload)
   });
   
   if (response?.token) {

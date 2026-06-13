@@ -24,7 +24,7 @@ public class SecurityConfig {
     
     // Local development toggle: set DISABLE_JWT=false in the environment to re-enable JWT authentication.
     private static final boolean DISABLE_JWT = Boolean.parseBoolean(
-            System.getenv().getOrDefault("DISABLE_JWT", "true")
+            System.getenv().getOrDefault("DISABLE_JWT", "false")
     );
     
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -43,20 +43,18 @@ public class SecurityConfig {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/api/auth/login").permitAll()
-                .requestMatchers("/api/auth/refresh").permitAll()
-                .requestMatchers("/api/auth/validate").permitAll()
-                .requestMatchers("/api/health").permitAll()
-                .requestMatchers("/swagger-ui/**").permitAll()
-                .requestMatchers("/v3/api-docs/**").permitAll()
-                .anyRequest().permitAll() // JWT authentication disabled for local development
-            );
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         if (!DISABLE_JWT) {
             http
                 .authorizeHttpRequests(authz -> authz
+                    .requestMatchers("/api/auth/login").permitAll()
+                    .requestMatchers("/api/auth/refresh").permitAll()
+                    .requestMatchers("/api/auth/validate").permitAll()
+                    .requestMatchers("/api/health").permitAll()
+                    .requestMatchers("/api/schools").permitAll()
+                    .requestMatchers("/swagger-ui/**").permitAll()
+                    .requestMatchers("/v3/api-docs/**").permitAll()
                     .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
@@ -67,6 +65,11 @@ public class SecurityConfig {
                         response.getWriter().write("{\"error\":\"Unauthorized\"}");
                     })
                 );
+        } else {
+            http
+                .authorizeHttpRequests(authz -> authz
+                    .anyRequest().permitAll() // JWT authentication disabled for local development
+                );
         }
         
         return http.build();
@@ -75,12 +78,18 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(
-            "http://localhost:3000",
-            "http://localhost:5173",
-            "http://127.0.0.1:3000",
-            "http://127.0.0.1:5173"
-        ));
+
+        String allowedOrigins = System.getenv().getOrDefault(
+            "CORS_ALLOWED_ORIGINS",
+            "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173"
+        );
+
+        List<String> origins = Arrays.stream(allowedOrigins.split(","))
+            .map(String::trim)
+            .filter(origin -> !origin.isEmpty())
+            .toList();
+
+        configuration.setAllowedOrigins(origins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);

@@ -30,10 +30,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain) throws ServletException, IOException {
         
         try {
-            // JWT authentication disabled for local development.
-            // This filter is retained so it can be re-enabled later.
+            if (isPublicEndpoint(request.getRequestURI())) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            String token = extractTokenFromRequest(request);
+            if (token != null && jwtTokenProvider.validateToken(token)) {
+                UserPrincipal principal = jwtTokenProvider.getUserPrincipalFromToken(token);
+                org.springframework.security.authentication.UsernamePasswordAuthenticationToken authentication = 
+                        new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                                principal, null, java.util.Collections.singletonList(
+                                        new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + principal.getRole().getValue())
+                                ));
+                authentication.setDetails(new org.springframework.security.web.authentication.WebAuthenticationDetailsSource().buildDetails(request));
+                org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
+            
             filterChain.doFilter(request, response);
-            return;
         } catch (Exception e) {
             log.error("JWT authentication filter error: {}", e.getMessage());
             sendUnauthorizedError(response, "Authentication error");

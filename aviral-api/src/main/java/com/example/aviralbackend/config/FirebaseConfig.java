@@ -31,45 +31,38 @@ public class FirebaseConfig {
         
         boolean hasCredentials = credentialsPath != null && !credentialsPath.isBlank();
         
-        if (hasCredentials) {
-            // Production: Use real Firebase credentials
-            System.out.println("\n=== PRODUCTION MODE ===");
-            System.out.println("Initializing Firebase with credentials");
-            System.out.println("Credentials path: " + credentialsPath);
-            System.out.println("=======================\n");
-            
-            try {
-                if (FirebaseApp.getApps().isEmpty()) {
+        try {
+            if (FirebaseApp.getApps().isEmpty()) {
+                FirebaseOptions.Builder optionsBuilder = FirebaseOptions.builder();
+
+                if (hasCredentials) {
+                    System.out.println("\n=== PRODUCTION MODE ===");
+                    System.out.println("Initializing Firebase with credentials file");
+                    System.out.println("Credentials path: " + credentialsPath);
+                    System.out.println("=======================\n");
+
                     FileInputStream serviceAccount = new FileInputStream(credentialsPath);
-                    FirebaseOptions options = FirebaseOptions.builder()
-                            .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                            .build();
-                    FirebaseApp.initializeApp(options);
+                    optionsBuilder.setCredentials(GoogleCredentials.fromStream(serviceAccount));
+                } else {
+                    System.out.println("\n=== PRODUCTION MODE WITH ADC ===");
+                    System.out.println("No GCP_AVIRALVIDHYA_CRED file path set, using Application Default Credentials");
+                    System.out.println("Ensure the Cloud Run service account has Firestore access");
+                    System.out.println("====================================================\n");
+
+                    optionsBuilder.setCredentials(GoogleCredentials.getApplicationDefault());
                 }
 
-                FirebaseApp app = FirebaseApp.getInstance();
-                Firestore firestore = FirestoreClient.getFirestore(app, "aviralvidhya-firestore-db");
-                validateFirestoreConnection(firestore);
-                return firestore;
-            } catch (Exception e) {
-                System.err.println("Failed to initialize Firebase with credentials at: " + credentialsPath);
-                e.printStackTrace(System.err);
-                throw e;
+                FirebaseApp.initializeApp(optionsBuilder.build());
             }
-        } else {
-            // Development: Return null, will be handled by FirestoreService
-            System.out.println("\n=== DEVELOPMENT MODE - NO CREDENTIALS ===");
-            System.out.println("Firebase is NOT initialized (no credentials provided)");
-            System.out.println("Data operations will fail - API is read-only");
-            System.out.println("");
-            System.out.println("TO USE REAL FIRESTORE:");
-            System.out.println("1. Download service account JSON from Firebase Console");
-            System.out.println("2. Set environment variable:");
-            System.out.println("   $env:GCP_AVIRALVIDHYA_CRED=\"C:\\path\\to\\service-account.json\"");
-            System.out.println("3. Restart the application");
-            System.out.println("=========================================\n");
-            
-            return null;
+
+            FirebaseApp app = FirebaseApp.getInstance();
+            Firestore firestore = FirestoreClient.getFirestore(app, "aviralvidhya-firestore-db");
+            validateFirestoreConnection(firestore);
+            return firestore;
+        } catch (Exception e) {
+            System.err.println("Failed to initialize Firebase: " + (hasCredentials ? credentialsPath : "Application Default Credentials"));
+            e.printStackTrace(System.err);
+            throw e;
         }
     }
 

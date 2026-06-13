@@ -4,6 +4,8 @@ public enum Role {
     SUPER_ADMIN("SUPER_ADMIN"),
     SCHOOL_ADMIN("SCHOOL_ADMIN"),
     TEACHER("TEACHER"),
+    ACCOUNTANT("ACCOUNTANT"),
+    PRINCIPLE("PRINCIPLE"),
     PARENT("PARENT");
     
     private final String value;

@@ -18,6 +18,5 @@ public class LoginRequest {
     @NotBlank(message = "Password is required")
     private String password;
     
-    @NotBlank(message = "School ID is required")
     private String schoolId;
 }

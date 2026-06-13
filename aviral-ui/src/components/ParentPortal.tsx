@@ -178,11 +178,11 @@ export default function ParentPortal({
 
   if (!activeStudent) {
     return (
-      <div id="parent-portal-empty" className="bg-white border-2 border-slate-200 rounded-2xl p-8 text-center max-w-xl mx-auto space-y-4 shadow-sm animate-fade-in">
-        <ShieldAlert className="w-12 h-12 text-rose-500 mx-auto" />
+      <div id="parent-portal-empty" className="glass-panel border border-slate-200 rounded-2xl p-8 text-center max-w-xl mx-auto space-y-4 shadow-sm animate-fade-in bg-white">
+        <ShieldAlert className="w-12 h-12 text-rose-300 mx-auto" />
         <h3 className="text-lg font-bold text-slate-900">No Student Profiles Enrolled / कोई छात्र प्रोफाइल नामांकित नहीं है</h3>
-        <p className="text-sm text-slate-500">
-          We cannot identify registered wards in this school context. Please log in as a "School Admin" and register at least one student profile under <strong className="text-slate-850">{currentSchool?.name || schoolId}</strong>.
+        <p className="text-sm text-slate-400">
+          We cannot identify registered wards in this school context. Please log in as a \"School Admin\" and register at least one student profile under <strong className="text-slate-900">{currentSchool?.name || schoolId}</strong>.
         </p>
       </div>
     );
@@ -212,10 +212,10 @@ export default function ParentPortal({
   const absentDays = Math.max(0, totalDays - presentDays);
 
   return (
-    <div id="parent-portal-root" className="space-y-6 animate-fade-in text-slate-900 font-sans">
+    <div id="parent-portal-root" className="space-y-6 animate-fade-in text-slate-900 font-sans glass-panel border border-slate-200 bg-white shadow-sm p-6">
       
       {/* 20-YEARS ARCHITECT SIGNATURE BIO CARD: Wards Selectors */}
-      <div id="language-and-child-selector-card" className="bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 text-white rounded-3xl p-6 shadow-xl space-y-5 border border-indigo-750">
+      <div id="language-and-child-selector-card" className="glass-panel border border-slate-200 bg-white text-slate-900 rounded-3xl p-6 shadow-sm space-y-5">
         
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1 text-left">
@@ -266,7 +266,7 @@ export default function ParentPortal({
       </div>
 
       {/* STUDENT BASIC METADATA LEDGER HEADER */}
-      <div id="active-ward-bio" className="p-5 bg-slate-50 border border-slate-205 rounded-2.5xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-left">
+      <div id="active-ward-bio" className="p-5 bg-slate-50 border border-slate-200 rounded-2.5xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-left">
         <div className="flex items-center gap-3.5">
           <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-150 flex items-center justify-center text-2xl shadow-inner shrink-0">
             🧑‍🎓
@@ -288,7 +288,7 @@ export default function ParentPortal({
           <GraduationCap className="w-5 h-5 text-indigo-600 shrink-0" />
           <div className="text-left">
             <span className="text-[9px] text-slate-400 font-bold block uppercase leading-none">Admission Registration / नामांकन संख्या</span>
-            <span className="text-xs font-black text-slate-705 font-mono">{activeStudent.id}</span>
+            <span className="text-xs font-black text-slate-400 font-mono">{activeStudent.id}</span>
           </div>
         </div>
       </div>
@@ -301,7 +301,7 @@ export default function ParentPortal({
           <div id="parent-fees-hub" className="bg-white border-2 border-slate-200/90 rounded-2.5xl shadow-sm p-6 space-y-5 text-left transition-all hover:shadow-md">
             
             <div className="flex justify-between items-center pb-3 border-b">
-              <div className="flex items-center gap-2">
+              <div className="flex-center-gap">
                 <div className="p-1.5 bg-emerald-50 text-emerald-700 rounded-lg">
                   <CreditCard className="w-4.5 h-4.5" />
                 </div>
@@ -351,7 +351,7 @@ export default function ParentPortal({
 
             {/* Date Details */}
             <div className="flex justify-between items-center text-[11px] px-3 py-2 bg-slate-50 rounded-xl border text-slate-650">
-              <span>Payment Type / शुल्क प्रकार: <strong className="text-slate-805 font-bold">Quarterly Term Term Tuition</strong></span>
+              <span>Payment Type / शुल्क प्रकार: <strong className="text-slate-900 font-bold">Quarterly Term Tuition</strong></span>
               <span>Due Date / अंतिम तिथि: <strong className="text-slate-900 font-extrabold font-mono">{new Date(activeStudent.fees.dueDate).toLocaleDateString()}</strong></span>
             </div>
 
@@ -378,7 +378,7 @@ export default function ParentPortal({
                     <button
                       type="button"
                       onClick={() => setPaymentAmount((activeStudent.fees.totalDue - activeStudent.fees.paidAmount).toString())}
-                      className="px-3 py-3 bg-slate-950 text-white rounded-xl text-xs font-bold uppercase tracking-wide hover:bg-slate-800"
+                      className="px-3 py-3 bg-white text-slate-900 rounded-xl text-xs font-bold uppercase tracking-wide hover:bg-slate-100 border border-slate-200"
                     >
                       Full due
                     </button>
@@ -389,7 +389,7 @@ export default function ParentPortal({
                   onClick={handlePayNow}
                   className="w-full bg-gradient-to-r from-emerald-600 to-slate-900 hover:opacity-95 font-bold text-white text-xs py-3 rounded-xl shadow-md uppercase tracking-wide cursor-pointer transition-all flex items-center justify-center gap-1"
                 >
-                  <CreditCard className="w-4 h-4" />
+                  <CreditCard className="icon-sm" />
                   <span>Process Payment / भुगतान करें</span>
                 </button>
 
@@ -421,13 +421,13 @@ export default function ParentPortal({
           <div id="parent-attendance-hub" className="bg-white border-2 border-slate-200/90 rounded-2.5xl shadow-sm p-6 space-y-5 text-left transition-all hover:shadow-md">
             
             <div className="flex justify-between items-center pb-3 border-b">
-              <div className="flex items-center gap-2">
+              <div className="flex-center-gap">
                 <div className="p-1.5 bg-indigo-50 text-indigo-700 rounded-lg">
                   <Calendar className="w-4.5 h-4.5" />
                 </div>
                 <div>
                   <h3 className="text-sm font-black text-slate-900 leading-none">Attendance Registry / <span className="text-indigo-850 font-bold">उपस्थिति विवरण</span></h3>
-                  <span className="text-[10px] text-slate-550 block mt-1">Official class attendence register statistics</span>
+                  <span className="text-[10px] text-slate-400 block mt-1">Official class attendance register statistics</span>
                 </div>
               </div>
               <span className="text-[10.5px] bg-slate-100 text-slate-700 border font-extrabold px-2 py-0.5 rounded-lg font-mono">Min Target: 75%</span>
@@ -489,7 +489,7 @@ export default function ParentPortal({
 
             {/* Calendar tracking dots */}
             <div>
-              <p className="text-[10px] font-black text-slate-450 uppercase tracking-widest mb-2 text-center sm:text-left">
+              <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-2 text-center sm:text-left">
                 Daily Calendar Map / दैनिक उपस्थिति चार्ट:
               </p>
               <div className="grid grid-cols-10 gap-1.5 bg-slate-50 p-2.5 rounded-xl border">
@@ -534,7 +534,7 @@ export default function ParentPortal({
         <div id="parent-notice-board" className="bg-white border-2 border-slate-200/90 rounded-2.5xl shadow-sm p-6 space-y-5 text-left transition-all hover:shadow-md">
           
           <div className="flex items-center justify-between pb-3 border-b">
-            <div className="flex items-center gap-2">
+            <div className="flex-center-gap">
               <div className="p-1.5 bg-amber-50 text-amber-700 rounded-lg">
                 <BellRing className="w-4.5 h-4.5 animate-bounce-short" />
               </div>
@@ -688,7 +688,7 @@ export default function ParentPortal({
 
             <button
               type="submit"
-              className="w-full py-3 bg-slate-900 text-white font-extrabold text-[11px] uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all cursor-pointer flex items-center justify-center gap-2 border-0"
+              className="w-full py-3 bg-indigo-600 text-white font-extrabold text-[11px] uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all cursor-pointer flex items-center justify-center gap-2 border-0"
             >
               <Send className="w-3.5 h-3.5" />
               <span>Send Digital Leave Request / छुट्टी के लिए ऑनलाइन आवेदन भेजें</span>

@@ -68,6 +68,7 @@ export interface Teacher {
   email: string;
   teacherUsername: string; // Created by school admin
   teacherPassword: string; // Created by school admin
+  designation: 'teacher' | 'accountant' | 'principle'; // Role within school
 }
 
 export interface Notice {
@@ -85,7 +86,7 @@ export interface Notice {
   targetValue?: string; // e.g. "Class IX", "student_1", "teacher_1"
 }
 
-export type Role = 'super_admin' | 'school_admin' | 'parent' | 'teacher';
+export type Role = 'super_admin' | 'school_admin' | 'teacher' | 'accountant' | 'principle' | 'parent';
 
 export type Language = 'en' | 'hi' | 'hinglish';
 

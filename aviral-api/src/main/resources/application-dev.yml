@@ -1,0 +1,8 @@
+cors:
+  # Expect this to be passed in via environment variable in Cloud Run
+  allowed-origins: ${CORS_ALLOWED_ORIGINS}
+
+jwt:
+  # No fallback here! If JWT_SECRET is not set in environment, the app will fail to start.
+  # This ensures no hardcoded secrets leak into production.
+  secret: ${JWT_SECRET}

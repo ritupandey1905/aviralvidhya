@@ -1,0 +1,31 @@
+spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  main:
+    banner-mode: off
+
+server:
+  port: ${PORT:8080}
+
+jwt:
+  expiration: 3600000
+  refresh:
+    expiration: 86400000
+
+logging:
+  level:
+    root: INFO
+    com.example.aviralbackend: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  metrics:
+    enable:
+      jvm: true
+      process: true
+      system: true

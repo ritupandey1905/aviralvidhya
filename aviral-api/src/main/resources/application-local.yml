@@ -1,0 +1,9 @@
+cors:
+  allowed-origins: http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173
+
+jwt:
+  # Hardcoded default for local development ONLY.
+  secret: my-super-secret-key-for-jwt-token-generation-and-validation-local-dev-only
+
+# Local development disables JWT requirement by default unless overridden
+# (Though our SecurityConfig will still read the env var)

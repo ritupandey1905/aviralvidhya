@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { School } from '../types';
-import { Building2, Settings2, PlusCircle, CheckCircle2, AlertTriangle, ShieldCheck, Database, Sliders, MapPin, Eye, EyeOff, Palette, Key, Clipboard } from 'lucide-react';
+import { Building2, Settings2, PlusCircle, CheckCircle2, AlertTriangle, ShieldCheck, Database, Sliders, MapPin, Eye, EyeOff, Palette, Key, Clipboard, IndianRupee, Activity, TrendingDown } from 'lucide-react';
 
 interface SuperAdminDashboardProps {
   schools: School[];
@@ -20,6 +20,7 @@ export default function SuperAdminDashboard({
   onAddSchool,
   isFirebaseActive
 }: SuperAdminDashboardProps) {
+  const [activeView, setActiveView] = useState<'admin' | 'school' | 'parent'>('admin');
   const [newSchoolName, setNewSchoolName] = useState('');
   const [newSchoolCity, setNewSchoolCity] = useState('');
   const [newSchoolState, setNewSchoolState] = useState('');
@@ -126,64 +127,82 @@ export default function SuperAdminDashboard({
   };
 
   return (
-    <div id="super-admin-root" className="space-y-8 animate-fade-in">
+    <div id="super-admin-root" className="space-y-8 animate-fade-in glass-panel border border-slate-200 bg-white shadow-sm p-6">
       
-      {/* Overview Cards Grid */}
-      <div id="super-admin-status-grid" className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div id="stat-card-schools" className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-indigo-50 text-indigo-700 rounded-xl">
-              <Building2 className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Registered Tenants</p>
-              <h3 className="text-2xl font-bold text-slate-900">{schools.length} Schools</h3>
-            </div>
-          </div>
-        </div>
-
-        <div id="stat-card-students" className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-emerald-50 text-emerald-700 rounded-xl">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Total Isolated Queries</p>
-              <h3 className="text-2xl font-bold text-slate-900">
-                {schools.reduce((acc, s) => acc + s.studentCount, 0)} Students
-              </h3>
-            </div>
-          </div>
-        </div>
-
-        <div id="stat-card-security" className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-amber-50 text-amber-700 rounded-xl">
-              <Database className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Storage Sync Mode</p>
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full mt-1 ${isFirebaseActive ? 'bg-emerald-100 text-emerald-800' : 'bg-orange-100 text-orange-850'}`}>
-                {isFirebaseActive ? 'Live Firebase Realtime DB' : 'Local Sandbox Synced'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div id="stat-card-compliance" className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-teal-50 text-teal-700 rounded-xl">
-              <Sliders className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">WCAG Accessibility</p>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-full bg-teal-100 text-teal-800 mt-1 uppercase">
-                Level AA Compliant
-              </span>
-            </div>
-          </div>
-        </div>
+      {/* Navigation Tabs */}
+      <div className="flex border-b border-slate-200 mb-6">
+        <button 
+          onClick={() => setActiveView('admin')}
+          className={`px-4 py-3 font-semibold text-sm border-b-2 transition-colors ${activeView === 'admin' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+        >
+          Admin View
+        </button>
+        <button 
+          onClick={() => setActiveView('school')}
+          className={`px-4 py-3 font-semibold text-sm border-b-2 transition-colors ${activeView === 'school' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+        >
+          School View
+        </button>
+        <button 
+          onClick={() => setActiveView('parent')}
+          className={`px-4 py-3 font-semibold text-sm border-b-2 transition-colors ${activeView === 'parent' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+        >
+          Parent View
+        </button>
       </div>
+
+      {activeView === 'admin' && (
+        <div className="space-y-8">
+          {/* Overview Cards Grid */}
+          <div id="super-admin-status-grid" className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div id="stat-card-schools" className="bg-slate-50 border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex-center-gap-lg">
+                <div className="p-3 bg-cyan-100 text-cyan-700 rounded-xl">
+                  <Building2 className="icon-lg" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Registered Tenants</p>
+                  <h3 className="text-2xl font-bold text-slate-900">{schools.length} Schools</h3>
+                </div>
+              </div>
+            </div>
+
+            <div id="stat-card-revenue" className="bg-slate-50 border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex-center-gap-lg">
+                <div className="p-3 bg-emerald-100 text-emerald-700 rounded-xl">
+                  <IndianRupee className="icon-lg" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Total Revenue</p>
+                  <h3 className="text-2xl font-bold text-slate-900">₹24,50,000</h3>
+                </div>
+              </div>
+            </div>
+
+            <div id="stat-card-expenses" className="bg-slate-50 border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex-center-gap-lg">
+                <div className="p-3 bg-rose-100 text-rose-700 rounded-xl">
+                  <TrendingDown className="icon-lg" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Total Expenses</p>
+                  <h3 className="text-2xl font-bold text-slate-900">₹12,30,000</h3>
+                </div>
+              </div>
+            </div>
+
+            <div id="stat-card-traffic" className="bg-slate-50 border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex-center-gap-lg">
+                <div className="p-3 bg-indigo-100 text-indigo-700 rounded-xl">
+                  <Activity className="icon-lg" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Portal Traffic</p>
+                  <h3 className="text-2xl font-bold text-slate-900">45,231 Active</h3>
+                </div>
+              </div>
+            </div>
+          </div>
 
       {copiedText && (
         <div className="fixed bottom-4 right-4 bg-slate-900 text-white rounded-lg px-4 py-2 text-xs font-semibold z-50 animate-bounce shadow-lg">
@@ -196,12 +215,12 @@ export default function SuperAdminDashboard({
         
         {/* Left Column: Registered Schools Feature Manager */}
         <div id="schools-directory-section" className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-slate-100 bg-slate-50/70 flex justify-between items-center">
+          <div className="p-6 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
             <div>
-              <h2 className="text-lg font-bold text-slate-950">Tenant Isolation & School Module Rights</h2>
-              <p className="text-sm text-slate-500">Configure feature authorization gates per tenant dynamically.</p>
+              <h2 className="text-lg font-bold text-slate-900">Tenant Isolation & School Module Rights</h2>
+              <p className="text-body">Configure feature authorization gates per tenant dynamically.</p>
             </div>
-            <Settings2 className="w-5 h-5 text-indigo-600" />
+            <Settings2 className="w-5 h-5 text-cyan-600" />
           </div>
 
           <div className="divide-y divide-slate-100 p-6 space-y-6">
@@ -223,22 +242,22 @@ export default function SuperAdminDashboard({
 
                   {/* Brand Theme Display badge */}
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[10px] uppercase font-bold text-slate-400">Theme:</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-500">Theme:</span>
                     <span className={`w-3.5 h-3.5 rounded-full bg-${school.primaryColor}-500 inline-block`} title={school.primaryColor}></span>
-                    <span className="text-xs font-mono font-semibold bg-slate-50 px-2 py-1 rounded border text-slate-700 capitalize">
+                    <span className="text-xs font-mono font-semibold bg-slate-100 px-2 py-1 rounded border text-slate-700 capitalize">
                       {school.primaryColor}
                     </span>
                   </div>
                 </div>
 
                 {/* CRITICAL: Display Whitelabel Logins & credentials created by Super Admin */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-150">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
                   <div className="space-y-1.5">
-                    <p className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                      <Palette className="w-3.5 h-3.5 text-slate-400" />
+                    <p className="text-[10.5px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1">
+                      <Palette className="w-3.5 h-3.5 text-slate-500" />
                       White-labeled Logo Label
                     </p>
-                    <div className="bg-white border rounded px-3 py-1.5 text-xs font-semibold text-slate-700 flex items-center justify-between">
+                    <div className="bg-white border border-slate-200 rounded px-3 py-1.5 text-xs font-semibold text-slate-700 flex items-center justify-between">
                       <p>{school.logoUrl || `🏫 ${school.name}`}</p>
                       <button 
                         onClick={() => handleCopy(school.logoUrl || `🏫 ${school.name}`, 'Logo Label')}
@@ -251,27 +270,27 @@ export default function SuperAdminDashboard({
                   </div>
 
                   <div className="space-y-1.5">
-                    <p className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                      <Key className="w-3.5 h-3.5 text-indigo-500" />
+                    <p className="text-[10.5px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1">
+                      <Key className="w-3.5 h-3.5 text-indigo-600" />
                       School Admin Account Credentials
                     </p>
-                    <div className="bg-white border rounded px-3 py-1.5 text-xs font-mono text-slate-800 flex flex-col gap-1">
-                      <div className="flex justify-between items-center border-b pb-1 last:border-0 last:pb-0">
-                        <span>User: <strong className="text-slate-950 font-bold">{school.adminUsername}</strong></span>
+                    <div className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-mono text-slate-700 flex flex-col gap-1">
+                      <div className="flex justify-between items-center border-b border-slate-200 pb-1 last:border-0 last:pb-0">
+                        <span>User: <strong className="text-slate-900 font-bold">{school.adminUsername}</strong></span>
                         <button 
                           type="button"
                           onClick={() => handleCopy(school.adminUsername, 'School Admin Username')}
-                          className="text-slate-400 hover:text-indigo-650"
+                          className="text-slate-400 hover:text-indigo-600"
                         >
                           <Clipboard className="w-3.5 h-3.5" />
                         </button>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span>Pass: <strong className="text-indigo-700 font-extrabold">{school.adminPassword}</strong></span>
+                        <span>Pass: <strong className="text-indigo-600 font-extrabold">{school.adminPassword}</strong></span>
                         <button 
                           type="button"
                           onClick={() => handleCopy(school.adminPassword, 'School Admin Password')}
-                          className="text-slate-400 hover:text-indigo-650"
+                          className="text-slate-400 hover:text-indigo-600"
                         >
                           <Clipboard className="w-3.5 h-3.5" />
                         </button>
@@ -282,16 +301,16 @@ export default function SuperAdminDashboard({
 
                 {/* Contact Information */}
                 {(school.contactMobile || school.contactEmail) && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-150 text-slate-700">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-slate-700">
                     {school.contactMobile && (
                       <div className="space-y-1 text-xs">
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">📞 Mobile Number</p>
+                        <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">📞 Mobile Number</p>
                         <p className="font-semibold text-slate-900">{school.contactMobile}</p>
                       </div>
                     )}
                     {school.contactEmail && (
                       <div className="space-y-1 text-xs">
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">✉️ Email Address</p>
+                        <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">✉️ Email Address</p>
                         <p className="font-semibold text-slate-900">{school.contactEmail}</p>
                       </div>
                     )}
@@ -299,8 +318,8 @@ export default function SuperAdminDashboard({
                 )}
 
                 {/* Checklist of Features allocated to this school */}
-                <div className="bg-slate-50 border border-slate-150 rounded-xl p-4">
-                  <p className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2.5">Provisioned Functional Modules:</p>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                  <p className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">Provisioned Functional Modules:</p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {Object.entries(school.activeFeatures).map(([featureName, isEnabled]) => (
                       <label 
@@ -332,7 +351,7 @@ export default function SuperAdminDashboard({
 
         {/* Right Column: Register New School Tenant Card */}
         <div id="register-school-section" className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 h-fit space-y-6">
-          <div className="flex items-center gap-2">
+          <div className="flex-center-gap">
             <PlusCircle className="text-indigo-600 w-5 h-5" />
             <h2 className="text-lg font-bold text-slate-950">Add School Tenant</h2>
           </div>
@@ -479,7 +498,7 @@ export default function SuperAdminDashboard({
             {/* School Administrator Credentials - REQUIRED BY SPEC */}
             <div className="bg-slate-50 p-4.5 rounded-xl border border-slate-200 space-y-3">
               <p className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-1">
-                <Key className="w-3.5 h-3.5 text-indigo-650" />
+                <Key className="w-3.5 h-3.5 text-cyan-300" />
                 <span>Admin Login Credentials</span>
               </p>
               
@@ -574,6 +593,24 @@ export default function SuperAdminDashboard({
         </div>
 
       </div>
+      </div>
+      )}
+
+      {activeView === 'school' && (
+        <div className="p-12 text-center text-slate-500 bg-slate-50 border border-slate-200 rounded-2xl">
+          <Building2 className="w-12 h-12 mx-auto text-slate-400 mb-4" />
+          <h2 className="text-xl font-bold text-slate-700">School View Proxy</h2>
+          <p className="mt-2">This module provides Super Admins with a read-only impersonation view of individual school dashboards.</p>
+        </div>
+      )}
+
+      {activeView === 'parent' && (
+        <div className="p-12 text-center text-slate-500 bg-slate-50 border border-slate-200 rounded-2xl">
+          <Eye className="w-12 h-12 mx-auto text-slate-400 mb-4" />
+          <h2 className="text-xl font-bold text-slate-700">Parent View Proxy</h2>
+          <p className="mt-2">This module allows Super Admins to preview the application exactly as a parent would experience it.</p>
+        </div>
+      )}
 
     </div>
   );

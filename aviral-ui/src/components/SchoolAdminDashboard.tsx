@@ -37,6 +37,7 @@ import {
 
 interface SchoolAdminDashboardProps {
   schoolId: string;
+  role?: string;
   schools: School[];
   students: Student[];
   teachers: Teacher[];
@@ -51,6 +52,7 @@ interface SchoolAdminDashboardProps {
 
 export default function SchoolAdminDashboard({
   schoolId,
+  role = 'school_admin',
   schools,
   students,
   teachers,
@@ -95,6 +97,7 @@ export default function SchoolAdminDashboard({
   const [teacherEmail, setTeacherEmail] = useState('');
   const [teacherUsername, setTeacherUsername] = useState('');
   const [teacherPassword, setTeacherPassword] = useState('');
+  const [teacherDesignation, setTeacherDesignation] = useState<'teacher' | 'accountant' | 'principle'>('teacher');
 
   const [expenseTitle, setExpenseTitle] = useState('');
   const [expenseAmt, setExpenseAmt] = useState('');
@@ -249,10 +252,10 @@ export default function SchoolAdminDashboard({
     if (studentName) {
       const parentUser = studentName.trim().toLowerCase().split(' ').join('.') + '.parent@school.com';
       setParentUsername(parentUser);
-      setParentPassword('parent123');
+      setParentPassword('');
     } else {
       setParentUsername('parent.' + Math.floor(100+Math.random()*900) + '@school.com');
-      setParentPassword('parent123');
+      setParentPassword('');
     }
   };
 
@@ -261,10 +264,10 @@ export default function SchoolAdminDashboard({
     if (teacherName) {
       const parsed = teacherName.trim().toLowerCase().replace(/dr\.|mr\.|mrs\./g, '').trim().split(' ').join('.');
       setTeacherUsername(`teacher.${parsed}`);
-      setTeacherPassword('teacher123');
+      setTeacherPassword('');
     } else {
       setTeacherUsername('teacher.' + Math.floor(100+Math.random()*900));
-      setTeacherPassword('teacher123');
+      setTeacherPassword('');
     }
   };
 
@@ -315,7 +318,8 @@ export default function SchoolAdminDashboard({
       schoolId: schoolId,
       email: teacherEmail.trim(),
       teacherUsername: teacherUsername.trim(),
-      teacherPassword: teacherPassword.trim()
+      teacherPassword: teacherPassword.trim(),
+      designation: teacherDesignation
     });
 
     setTeacherSuccess(isAdminHindi ? "शिक्षक प्रोफ़ाइल और क्रेडेंशियल्स सफलतापूर्वक बनाए गए!" : "Teacher profile with custom credentials provisioned successfully.");
@@ -324,6 +328,7 @@ export default function SchoolAdminDashboard({
     setTeacherEmail('');
     setTeacherUsername('');
     setTeacherPassword('');
+    setTeacherDesignation('teacher');
     setModalType('none');
     setTimeout(() => setTeacherSuccess(''), 5000);
   };
@@ -583,7 +588,7 @@ export default function SchoolAdminDashboard({
   });
 
   return (
-    <div id="school-admin-root" className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-left text-slate-900 animate-fade-in">
+    <div id="school-admin-root" className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-left text-slate-900 animate-fade-in glass-panel border border-slate-200 bg-white shadow-sm">
       
       {copiedText && (
         <div id="school-copy-notif" className="fixed bottom-4 right-4 bg-slate-950 border border-slate-705 text-white rounded-lg px-4 py-2.5 text-xs font-semibold z-50 animate-bounce shadow-lg">
@@ -592,13 +597,13 @@ export default function SchoolAdminDashboard({
       )}
 
       {/* LEFT COLUMN: INTERACTIVE NAVIGATION SIDEBAR */}
-      <div id="admin-sidebar" className="lg:col-span-3 bg-white border border-slate-205 rounded-2xl p-4 space-y-4 flex flex-col h-fit">
-        <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
-          <div className="p-2.5 bg-orange-100 text-orange-650 rounded-xl font-bold font-mono">
+      <div id="admin-sidebar" className="lg:col-span-3 bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4 flex flex-col h-fit text-slate-900">
+        <div className="flex items-center gap-3 pb-4 border-b border-slate-200">
+          <div className="p-2.5 bg-cyan-500/15 text-cyan-200 rounded-xl font-bold font-mono">
             {activeSchool?.schoolCode || "SCH"}
           </div>
           <div>
-            <h3 className="text-sm font-extrabold text-slate-805 leading-none">Vidyalaya ERP</h3>
+            <h3 className="text-sm font-extrabold text-white leading-none">Vidyalaya ERP</h3>
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tenant Desk</span>
           </div>
         </div>
@@ -616,65 +621,77 @@ export default function SchoolAdminDashboard({
             <span>{curr.sidebarDashboard}</span>
           </button>
 
-          <button
-            onClick={() => setActiveTab('attendance')}
-            className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition-all border border-transparent cursor-pointer ${
-              activeTab === 'attendance' ? aTheme.sideActive : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            <Calendar className="w-4 h-4 text-slate-500" />
-            <span>{curr.sidebarAttendance}</span>
-          </button>
+          {(role === 'school_admin' || role === 'principle') && (
+            <button
+              onClick={() => setActiveTab('attendance')}
+              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition-all border border-transparent cursor-pointer ${
+                activeTab === 'attendance' ? aTheme.sideActive : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <Calendar className="w-4 h-4 text-slate-500" />
+              <span>{curr.sidebarAttendance}</span>
+            </button>
+          )}
 
-          <button
-            onClick={() => setActiveTab('fees')}
-            className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition-all border border-transparent cursor-pointer ${
-              activeTab === 'fees' ? aTheme.sideActive : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            <DollarSign className="w-4 h-4 text-slate-500" />
-            <span>{curr.sidebarFees}</span>
-          </button>
+          {(role === 'school_admin' || role === 'principle' || role === 'accountant') && (
+            <button
+              onClick={() => setActiveTab('fees')}
+              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition-all border border-transparent cursor-pointer ${
+                activeTab === 'fees' ? aTheme.sideActive : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <DollarSign className="w-4 h-4 text-slate-500" />
+              <span>{curr.sidebarFees}</span>
+            </button>
+          )}
 
-          <button
-            onClick={() => setActiveTab('students')}
-            className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition-all border border-transparent cursor-pointer ${
-              activeTab === 'students' ? aTheme.sideActive : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            <Users className="w-4 h-4 text-slate-500" />
-            <span>{curr.sidebarStudents}</span>
-          </button>
+          {(role === 'school_admin' || role === 'principle') && (
+            <button
+              onClick={() => setActiveTab('students')}
+              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition-all border border-transparent cursor-pointer ${
+                activeTab === 'students' ? aTheme.sideActive : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <Users className="w-4 h-4 text-slate-500" />
+              <span>{curr.sidebarStudents}</span>
+            </button>
+          )}
 
-          <button
-            onClick={() => setActiveTab('teachers')}
-            className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition-all border border-transparent cursor-pointer ${
-              activeTab === 'teachers' ? aTheme.sideActive : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            <UserCheck className="w-4 h-4 text-slate-500" />
-            <span>{curr.sidebarTeachers}</span>
-          </button>
+          {(role === 'school_admin' || role === 'principle') && (
+            <button
+              onClick={() => setActiveTab('teachers')}
+              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition-all border border-transparent cursor-pointer ${
+                activeTab === 'teachers' ? aTheme.sideActive : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <UserCheck className="w-4 h-4 text-slate-500" />
+              <span>{curr.sidebarTeachers}</span>
+            </button>
+          )}
 
-          <button
-            onClick={() => setActiveTab('notices')}
-            className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition-all border border-transparent cursor-pointer ${
-              activeTab === 'notices' ? aTheme.sideActive : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            <FileText className="w-4 h-4 text-slate-500" />
-            <span>{curr.sidebarNotices}</span>
-          </button>
+          {(role === 'school_admin' || role === 'principle') && (
+            <button
+              onClick={() => setActiveTab('notices')}
+              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition-all border border-transparent cursor-pointer ${
+                activeTab === 'notices' ? aTheme.sideActive : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <FileText className="w-4 h-4 text-slate-500" />
+              <span>{curr.sidebarNotices}</span>
+            </button>
+          )}
 
-          <button
-            onClick={() => setActiveTab('timetable_results')}
-            className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition-all border border-transparent cursor-pointer ${
-              activeTab === 'timetable_results' ? aTheme.sideActive : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            <Award className="w-4 h-4 text-slate-500" />
-            <span>{curr.sidebarTimetables}</span>
-          </button>
+          {(role === 'school_admin' || role === 'principle') && (
+            <button
+              onClick={() => setActiveTab('timetable_results')}
+              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition-all border border-transparent cursor-pointer ${
+                activeTab === 'timetable_results' ? aTheme.sideActive : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <Award className="w-4 h-4 text-slate-500" />
+              <span>{curr.sidebarTimetables}</span>
+            </button>
+          )}
 
         </nav>
 
@@ -694,8 +711,8 @@ export default function SchoolAdminDashboard({
       <div id="admin-main-stage" className="lg:col-span-9 space-y-6">
         
         {/* UPPER CONTEXT CARD HEADER */}
-        <div id="admin-header-card" className="bg-slate-900 text-white p-6 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border border-orange-500/10 shadow-sm">
-          <div className="flex items-center gap-3">
+        <div id="admin-header-card" className="bg-white text-slate-900 p-6 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border border-slate-200 shadow-sm">
+          <div className="flex-center-gap-lg">
             <div className={`p-3 rounded-xl bg-white/10 ${aTheme.text} font-bold text-lg`}>
               ⭐
             </div>
@@ -715,7 +732,7 @@ export default function SchoolAdminDashboard({
             onClick={() => setIsAdminHindi(!isAdminHindi)}
             className={`text-xs font-extrabold px-4 py-2.5 rounded-xl border flex items-center gap-2 transition-all cursor-pointer ${aTheme.bg}`}
           >
-            <Languages className="w-4 h-4" />
+            <Languages className="icon-sm" />
             <span>{curr.langToggle}</span>
           </button>
         </div>
@@ -737,14 +754,14 @@ export default function SchoolAdminDashboard({
                   onClick={() => setModalType('student')}
                   className={`flex items-center gap-1.5 text-xs font-bold px-4 py-2.5 rounded-xl transition-all cursor-pointer ${aTheme.bg}`}
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="icon-sm" />
                   <span>{curr.quickAddStudent}</span>
                 </button>
                 <button
                   onClick={() => setModalType('teacher')}
                   className="flex items-center gap-1.5 text-xs font-bold px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer text-slate-800 bg-white"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="icon-sm" />
                   <span>{curr.quickAddTeacher}</span>
                 </button>
               </div>
@@ -752,27 +769,27 @@ export default function SchoolAdminDashboard({
 
             {/* FINANCIAL STATS CARDS GRID */}
             <div>
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Institutional Capital Ledger balances</p>
+              <p className="text-xs font-black text-slate-300 uppercase tracking-widest mb-3">Institutional Capital Ledger balances</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 
-                <div className="bg-white border border-slate-200.5 rounded-xl p-4 space-y-1">
+                <div className="bg-slate-950/80 border border-slate-700/40 rounded-xl p-4 space-y-1">
                   <p className="text-[10px] font-bold text-slate-400 uppercase">{curr.financialMetricTotalCollected}</p>
-                  <h4 className="text-lg font-black text-emerald-600">₹{totalFeesCollected.toLocaleString('en-IN')}</h4>
+                  <h4 className="text-lg font-black text-emerald-400">₹{totalFeesCollected.toLocaleString('en-IN')}</h4>
                 </div>
 
-                <div className="bg-white border border-slate-205 rounded-xl p-4 space-y-1">
+                <div className="bg-slate-950/80 border border-slate-700/40 rounded-xl p-4 space-y-1">
                   <p className="text-[10px] font-bold text-slate-400 uppercase">{curr.financialMetricTotalDue}</p>
-                  <h4 className="text-lg font-black text-rose-600">₹{totalDuesExpected.toLocaleString('en-IN')}</h4>
+                  <h4 className="text-lg font-black text-rose-400">₹{totalDuesExpected.toLocaleString('en-IN')}</h4>
                 </div>
 
-                <div className="bg-white border border-slate-205 rounded-xl p-4 space-y-1">
+                <div className="bg-slate-950/80 border border-slate-700/40 rounded-xl p-4 space-y-1">
                   <p className="text-[10px] font-bold text-slate-400 uppercase">{curr.financialMetricCollectedThisMonth}</p>
-                  <h4 className="text-lg font-black text-slate-800">₹{Math.round(totalFeesCollected * 0.15).toLocaleString('en-IN')}</h4>
+                  <h4 className="text-lg font-black text-slate-100">₹{Math.round(totalFeesCollected * 0.15).toLocaleString('en-IN')}</h4>
                 </div>
 
-                <div className="bg-white border border-slate-205 rounded-xl p-4 space-y-1">
+                <div className="bg-slate-950/80 border border-slate-700/40 rounded-xl p-4 space-y-1">
                   <p className="text-[10px] font-bold text-slate-400 uppercase">{curr.financialMetricExpenses}</p>
-                  <h4 className="text-lg font-black text-amber-700">₹{totalExpenses.toLocaleString('en-IN')}</h4>
+                  <h4 className="text-lg font-black text-amber-400">₹{totalExpenses.toLocaleString('en-IN')}</h4>
                 </div>
 
               </div>
@@ -781,33 +798,33 @@ export default function SchoolAdminDashboard({
             {/* OPERATIONAL RATIOS & ATTENDANCE INDICATORS */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               
-              <div className="bg-white border rounded-xl p-5 space-y-3">
-                <h4 className="text-xs font-black text-slate-450 uppercase tracking-wider">Attendance statistics</h4>
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-3">
+                <h4 className="text-xs font-black text-slate-300 uppercase tracking-wider">Attendance statistics</h4>
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-bold text-slate-705">
+                    <div className="flex justify-between text-xs font-bold text-slate-400">
                       <span>Students Present</span>
-                      <span className="text-emerald-600 font-extrabold">{studentPresentRate}%</span>
+                      <span className="text-emerald-400 font-extrabold">{studentPresentRate}%</span>
                     </div>
-                    <div className="w-full bg-slate-100 rounded-full h-2">
-                      <div className="bg-emerald-500 h-2 rounded-full" style={{width: `${studentPresentRate}%`}}></div>
+                    <div className="w-full bg-slate-800 rounded-full h-2">
+                      <div className="bg-emerald-500 h-2 rounded-full transition-all duration-500" style={{ width: `${studentPresentRate}%` }}></div>
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-bold text-slate-705">
+                    <div className="flex justify-between text-xs font-bold text-slate-400">
                       <span>Teachers Live</span>
-                      <span className="text-indigo-650 font-extrabold">{facultyPresentRate}%</span>
+                      <span className="text-cyan-400 font-extrabold">{facultyPresentRate}%</span>
                     </div>
-                    <div className="w-full bg-slate-100 rounded-full h-2">
-                      <div className="bg-indigo-600 h-2 rounded-full" style={{width: `${facultyPresentRate}%`}}></div>
+                    <div className="w-full bg-slate-800 rounded-full h-2">
+                      <div className="bg-cyan-500 h-2 rounded-full transition-all duration-500" style={{ width: `${facultyPresentRate}%` }}></div>
                     </div>
                   </div>
                 </div>
               </div>
 
               <div className="bg-white border rounded-xl p-5 space-y-2 text-center md:text-left">
-                <h4 className="text-xs font-black text-slate-450 uppercase tracking-wider">Ratios Index</h4>
+                <h4 className="text-xs font-black text-slate-300 uppercase tracking-wider">Ratios Index</h4>
                 <div className="pt-2">
                   <p className="text-[10px] uppercase font-bold text-slate-400">Student to Teacher Ratio</p>
                   <h3 className="text-3xl font-black text-slate-800 mt-1">
@@ -821,9 +838,9 @@ export default function SchoolAdminDashboard({
 
               {/* NOTICE LISTING PREVIEW WIDGET */}
               <div className="bg-white border rounded-xl p-5 space-y-2">
-                <h4 className="text-xs font-black text-slate-450 uppercase tracking-wider flex justify-between">
+                <h4 className="text-xs font-black text-slate-300 uppercase tracking-wider flex justify-between">
                   <span>Recent Announcements</span>
-                  <span className="text-[10.5px] lowercase italic text-orange-650">{isolatedNotices.length} issued</span>
+                  <span className="text-[10.5px] lowercase italic text-orange-300">{isolatedNotices.length} issued</span>
                 </h4>
                 <div className="pt-2 space-y-2 overflow-y-auto max-h-[120px] pr-1">
                   {isolatedNotices.slice(0, 3).map((not) => (
@@ -843,7 +860,7 @@ export default function SchoolAdminDashboard({
             {/* LEAVE APPLICATIONS REVIEW CORNER */}
             <div className="bg-white border rounded-2xl p-6 space-y-4">
               <div className="flex justify-between items-center pb-2 border-b">
-                <h4 className="text-sm font-black text-slate-805 uppercase tracking-wide">Reviews outstanding Leave Applications</h4>
+                <h4 className="text-sm font-black text-slate-300 uppercase tracking-wide">Reviews outstanding Leave Applications</h4>
                 <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-black">
                   {leavesToReview.filter(l => l.status === 'pending').length} Actions Required
                 </span>
@@ -856,13 +873,13 @@ export default function SchoolAdminDashboard({
                   leavesToReview.map((lv) => (
                     <div key={lv.id} className="pt-3 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-xs font-medium">
                       <div className="space-y-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex-center-gap">
                           <strong className="text-slate-900 text-sm">{lv.studentName}</strong>
                           <span className="bg-slate-100 text-slate-600 px-2 py-0.5 text-[10px] rounded font-bold uppercase">{lv.class}</span>
                           <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded font-black capitalize">{lv.category} leave</span>
                         </div>
                         <p className="text-slate-600"><span className="font-bold text-slate-700">Days:</span> {lv.startDate} to {lv.endDate}</p>
-                        <p className="text-slate-550 italic">Reason: "{lv.reason}"</p>
+                        <p className="text-slate-400 italic">Reason: "{lv.reason}"</p>
                       </div>
 
                       {/* Approve/Reject Buttons inline */}
@@ -898,51 +915,51 @@ export default function SchoolAdminDashboard({
         )}
 
         {/* VIEW 2: ATTENDANCE TAB */}
-        {activeTab === 'attendance' && (
-          <div id="view-attendance-tab" className="bg-white border rounded-2xl p-6 space-y-6 animate-fade-in text-slate-950">
+        {activeTab === 'attendance' && (role === 'school_admin' || role === 'principle') && (
+          <div id="view-attendance-tab" className="bg-slate-950/90 border border-slate-700/40 rounded-2xl p-6 space-y-6 animate-fade-in text-slate-100">
             <div>
-              <h3 className="text-base font-black text-slate-900">Attendances Register Log</h3>
-              <p className="text-xs text-slate-500 mt-1">Review check ins statuses for teachers/staff and pupil groups today</p>
+              <h3 className="text-base font-black text-white">Attendances Register Log</h3>
+              <p className="text-xs text-slate-400 mt-1">Review check in statuses for teachers/staff and pupil groups today</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
               
               {/* Pupils check-in simulation */}
               <div className="space-y-4">
-                <h4 className="text-xs font-black text-slate-450 uppercase tracking-widest border-b pb-2">Class Attendance Logs Today</h4>
+                <h4 className="text-xs font-black text-slate-300 uppercase tracking-widest border-b pb-2">Class Attendance Logs Today</h4>
                 <div className="divide-y text-xs font-semibold space-y-3 pt-1">
-                  <div className="flex justify-between items-center bg-slate-50 p-2.5 rounded-xl">
+                  <div className="flex justify-between items-center bg-slate-900/70 p-2.5 rounded-xl">
                     <span>Class VI - section A:</span>
-                    <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-black">92% Checked in</span>
+                    <span className="text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded font-black">92% Checked in</span>
                   </div>
-                  <div className="flex justify-between items-center bg-slate-50 p-2.5 rounded-xl">
+                  <div className="flex justify-between items-center bg-slate-900/70 p-2.5 rounded-xl">
                     <span>Class VII - section A:</span>
-                    <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-black">88% Checked in</span>
+                    <span className="text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded font-black">88% Checked in</span>
                   </div>
-                  <div className="flex justify-between items-center bg-slate-50 p-2.5 rounded-xl">
+                  <div className="flex justify-between items-center bg-slate-900/70 p-2.5 rounded-xl">
                     <span>Class VIII - section B:</span>
-                    <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-black">95% Checked in</span>
+                    <span className="text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded font-black">95% Checked in</span>
                   </div>
-                  <div className="flex justify-between items-center bg-slate-50 p-2.5 rounded-xl">
+                  <div className="flex justify-between items-center bg-slate-900/70 p-2.5 rounded-xl">
                     <span>Class IX - section A:</span>
-                    <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-black">90% Checked in</span>
+                    <span className="text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded font-black">90% Checked in</span>
                   </div>
-                  <div className="flex justify-between items-center bg-slate-50 p-2.5 rounded-xl">
+                  <div className="flex justify-between items-center bg-slate-900/70 p-2.5 rounded-xl">
                     <span>Class X - section C:</span>
-                    <span className="text-rose-700 bg-rose-50 px-2 py-0.5 rounded font-black">74% Shortage alert</span>
+                    <span className="text-rose-300 bg-rose-500/10 px-2 py-0.5 rounded font-black">74% Shortage alert</span>
                   </div>
                 </div>
               </div>
 
               {/* Staff and teachers attendance log */}
               <div className="space-y-4">
-                <h4 className="text-xs font-black text-slate-450 uppercase tracking-widest border-b pb-2">Teacher Staff Clocking Grid</h4>
+                <h4 className="text-xs font-black text-slate-300 uppercase tracking-widest border-b pb-2">Teacher Staff Clocking Grid</h4>
                 <div className="space-y-3.5 text-xs">
                   {isolatedTeachers.map((tc) => (
-                    <div key={tc.id} className="flex justify-between items-center p-3 border rounded-xl bg-slate-50/50">
+                    <div key={tc.id} className="flex justify-between items-center p-3 border rounded-xl bg-slate-900/60">
                       <div>
                         <p className="font-extrabold text-slate-900">{tc.name}</p>
-                        <p className="text-[10px] text-rose-750 font-bold">{tc.subject}</p>
+                        <p className="text-[10px] text-rose-300 font-bold">{tc.subject}</p>
                       </div>
                       <span className="bg-emerald-100 text-emerald-800 font-extrabold text-[10px] uppercase px-2.5 py-1 rounded">
                         ● Present-In
@@ -960,7 +977,7 @@ export default function SchoolAdminDashboard({
         )}
 
         {/* VIEW 3: FEES TAB */}
-        {activeTab === 'fees' && (
+        {activeTab === 'fees' && (role === 'school_admin' || role === 'principle' || role === 'accountant') && (
           <div id="view-fees-tab" className="space-y-6 animate-fade-in text-slate-950">
             
             {/* Dynamic log new expense form */}
@@ -975,7 +992,7 @@ export default function SchoolAdminDashboard({
                     value={expenseTitle}
                     onChange={(e) => setExpenseTitle(e.target.value)}
                     placeholder="e.g. Science Beakers replacement"
-                    className="w-full text-xs bg-slate-50 border rounded-lg p-2.5"
+                    className="input-small"
                     required
                   />
                 </div>
@@ -987,7 +1004,7 @@ export default function SchoolAdminDashboard({
                     value={expenseAmt}
                     onChange={(e) => setExpenseAmt(e.target.value)}
                     placeholder="e.g. 3500"
-                    className="w-full text-xs bg-slate-50 border rounded-lg p-2.5"
+                    className="input-small"
                     required
                   />
                 </div>
@@ -1043,7 +1060,7 @@ export default function SchoolAdminDashboard({
                       const balance = st.fees.totalDue - st.fees.paidAmount;
                       const hasF = new Date() > new Date(st.fees.dueDate) && balance > 0;
                       return (
-                        <tr key={st.id} className="hover:bg-slate-50/50">
+                        <tr key={st.id} className="hover:bg-slate-900/60">
                           <td className="py-3 px-3 font-bold text-slate-900">{st.name}</td>
                           <td className="py-3 px-3">{st.class} - {st.section}</td>
                           <td className="py-3 px-3 font-mono">₹{st.fees.totalDue.toLocaleString('en-IN')}</td>
@@ -1059,7 +1076,7 @@ export default function SchoolAdminDashboard({
                               {st.fees.status} {hasF && "+ late penalty"}
                             </span>
                           </td>
-                          <td className="py-3 px-3 font-mono text-slate-450 text-right">{st.parentUsername}</td>
+                          <td className="py-3 px-3 font-mono text-slate-300 text-right">{st.parentUsername}</td>
                         </tr>
                       );
                     })}
@@ -1084,7 +1101,7 @@ export default function SchoolAdminDashboard({
                           <p className="font-extrabold text-slate-900">{ep.title}</p>
                           <span className="inline-block px-2 py-0.5 text-[9.5px] bg-slate-100 text-slate-505 rounded mt-0.5 leading-none">{ep.category} &bull; {ep.date}</span>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex-center-gap-lg">
                           <strong className="text-rose-700 font-extrabold">- ₹{ep.amount.toLocaleString('en-IN')}</strong>
                           <button
                             onClick={() => handleDeleteExpense(ep.id)}
@@ -1105,12 +1122,12 @@ export default function SchoolAdminDashboard({
         )}
 
         {/* VIEW 4: STUDENT DIRECTORY TAB */}
-        {activeTab === 'students' && (
+        {activeTab === 'students' && (role === 'school_admin' || role === 'principle') && (
           <div id="view-students-tab" className="bg-white border rounded-2xl p-6 space-y-6 animate-fade-in text-slate-950">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4">
               <div>
                 <h3 className="text-base font-black text-slate-900">Registered Isolated Students Directory</h3>
-                <p className="text-xs text-slate-450 mt-1">Total {isolatedStudents.length} pupil profiles mapped to this school nodeId</p>
+                <p className="text-xs text-slate-300 mt-1">Total {isolatedStudents.length} pupil profiles mapped to this school nodeId</p>
               </div>
               <button
                 onClick={() => setModalType('student')}
@@ -1134,8 +1151,8 @@ export default function SchoolAdminDashboard({
                 />
               </div>
 
-              <div className="flex items-center gap-2">
-                <Filter className="w-4.5 h-4.5 text-slate-450" />
+              <div className="flex-center-gap">
+                <Filter className="w-4.5 h-4.5 text-slate-400" />
                 <span className="text-xs font-bold text-slate-650">Filter Class:</span>
                 <select
                   value={studentClassFilter}
@@ -1166,7 +1183,7 @@ export default function SchoolAdminDashboard({
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
                   {filteredStudents.map((stud) => (
-                    <tr key={stud.id} className="hover:bg-slate-50/50">
+                    <tr key={stud.id} className="hover:bg-slate-900/60">
                       <td className="py-3.5 px-4 font-black text-slate-900">{stud.name}</td>
                       <td className="py-3.5 px-4 font-mono">{stud.rollNo}</td>
                       <td className="py-3.5 px-4">
@@ -1195,7 +1212,7 @@ export default function SchoolAdminDashboard({
                           onClick={() => onDeleteStudent(stud.id)}
                           className="text-rose-650 hover:text-rose-800 hover:bg-rose-50 p-1.5 rounded transition-all cursor-pointer"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="icon-sm" />
                         </button>
                       </td>
                     </tr>
@@ -1212,12 +1229,12 @@ export default function SchoolAdminDashboard({
         )}
 
         {/* VIEW 5: TEACHER DIRECTORY TAB */}
-        {activeTab === 'teachers' && (
+        {activeTab === 'teachers' && (role === 'school_admin' || role === 'principle') && (
           <div id="view-teachers-tab" className="bg-white border rounded-2xl p-6 space-y-6 animate-fade-in text-slate-950">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4">
               <div>
                 <h3 className="text-base font-black text-slate-900">Faculty directory list</h3>
-                <p className="text-xs text-slate-450 mt-1">Create or manage active teacher profiles authorized on this tenant</p>
+                <p className="text-xs text-slate-300 mt-1">Create or manage active teacher profiles authorized on this tenant</p>
               </div>
               <button
                 onClick={() => setModalType('teacher')}
@@ -1241,7 +1258,7 @@ export default function SchoolAdminDashboard({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredTeachers.map((tc) => (
-                <div key={tc.id} className="p-4 border rounded-xl bg-slate-50/50 flex flex-col justify-between gap-4">
+                <div key={tc.id} className="p-4 border rounded-xl bg-slate-900/60 flex flex-col justify-between gap-4">
                   <div className="flex justify-between items-start">
                     <div>
                       <h4 className="text-sm font-black text-slate-900">{tc.name}</h4>
@@ -1252,7 +1269,7 @@ export default function SchoolAdminDashboard({
                       onClick={() => onDeleteTeacher(tc.id)}
                       className="text-slate-400 hover:text-red-650 p-1.5 hover:bg-rose-50 rounded"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="icon-sm" />
                     </button>
                   </div>
 
@@ -1280,7 +1297,7 @@ export default function SchoolAdminDashboard({
         )}
 
         {/* VIEW 6: NOTICES BROADCAST (WITH ADVANCED TARGETING) */}
-        {activeTab === 'notices' && (
+        {activeTab === 'notices' && (role === 'school_admin' || role === 'principle') && (
           <div id="view-notices-tab" className="space-y-6 animate-fade-in text-slate-950">
             
             {/* Extended Notice broadcaster form component containing translations & targeting fields */}
@@ -1371,7 +1388,7 @@ export default function SchoolAdminDashboard({
                       value={noticeTitle}
                       onChange={(e) => setNoticeTitle(e.target.value)}
                       placeholder="Title in English"
-                      className="w-full text-xs bg-slate-50 border rounded-lg p-2.5"
+                      className="input-small"
                       required
                     />
                   </div>
@@ -1383,7 +1400,7 @@ export default function SchoolAdminDashboard({
                       value={noticeHindiTitle}
                       onChange={(e) => setNoticeHindiTitle(e.target.value)}
                       placeholder="शीर्षक हिन्दी में"
-                      className="w-full text-xs bg-slate-50 border rounded-lg p-2.5"
+                      className="input-small"
                     />
                   </div>
                   <div>
@@ -1394,7 +1411,7 @@ export default function SchoolAdminDashboard({
                       value={noticeHinglishTitle}
                       onChange={(e) => setNoticeHinglishTitle(e.target.value)}
                       placeholder="Title in Hinglish e.g. holiday warning"
-                      className="w-full text-xs bg-slate-50 border rounded-lg p-2.5"
+                      className="input-small"
                     />
                   </div>
                 </div>
@@ -1408,7 +1425,7 @@ export default function SchoolAdminDashboard({
                     onChange={(e) => setNoticeContent(e.target.value)}
                     placeholder="Content body in English..."
                     rows={2}
-                    className="w-full text-xs bg-slate-50 border rounded-lg p-2.5"
+                    className="input-small"
                     required
                   />
                 </div>
@@ -1422,7 +1439,7 @@ export default function SchoolAdminDashboard({
                       onChange={(e) => setNoticeHindiContent(e.target.value)}
                       placeholder="विवरण हिन्दी में..."
                       rows={2}
-                      className="w-full text-xs bg-slate-50 border rounded-lg p-2.5"
+                      className="input-small"
                     />
                   </div>
                   <div>
@@ -1433,7 +1450,7 @@ export default function SchoolAdminDashboard({
                       onChange={(e) => setNoticeHinglishContent(e.target.value)}
                       placeholder="Content in Hinglish e.g. submit homework fast..."
                       rows={2}
-                      className="w-full text-xs bg-slate-50 border rounded-lg p-2.5"
+                      className="input-small"
                     />
                   </div>
                 </div>
@@ -1453,7 +1470,7 @@ export default function SchoolAdminDashboard({
 
             {/* General Circular announcements list matched in this school node */}
             <div className="bg-white border rounded-2xl p-6 space-y-4">
-              <h3 className="text-xs font-bold text-slate-805 uppercase tracking-wider pb-2 border-b">Active Broadcast History</h3>
+              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider pb-2 border-b border-slate-700/40">Active Broadcast History</h3>
               <div className="divide-y space-y-4">
                 {isolatedNotices.length === 0 ? (
                   <p className="text-xs text-slate-400 py-6 text-center">No active broadcasts published yet</p>
@@ -1461,7 +1478,7 @@ export default function SchoolAdminDashboard({
                   isolatedNotices.map((nt) => (
                     <div key={nt.id} className="pt-4 first:pt-0 flex justify-between items-start gap-4">
                       <div className="space-y-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex-center-gap">
                           <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded border ${aTheme.badge}`}>
                             {nt.category}
                           </span>
@@ -1476,7 +1493,7 @@ export default function SchoolAdminDashboard({
                         <p className="text-xs text-slate-600">{nt.content}</p>
                         
                         {(nt.hindiTitle || nt.hinglishTitle) && (
-                          <div className="bg-slate-50/75 p-2 rounded border border-slate-150 space-y-1 mt-1 text-[11px] leading-normal font-medium text-slate-700">
+                          <div className="bg-slate-900/70 p-2 rounded border border-slate-700/40 space-y-1 mt-1 text-[11px] leading-normal font-medium text-slate-300">
                             {nt.hindiTitle && <p><strong className="text-amber-800">HI:</strong> {nt.hindiTitle} - {nt.hindiContent}</p>}
                             {nt.hinglishTitle && <p><strong className="text-teal-800">HL:</strong> "{nt.hinglishTitle} - {nt.hinglishContent}"</p>}
                           </div>
@@ -1499,14 +1516,14 @@ export default function SchoolAdminDashboard({
         )}
 
         {/* VIEW 7: TIMETABLE & RESULTS/GRADING */}
-        {activeTab === 'timetable_results' && (
+        {activeTab === 'timetable_results' && (role === 'school_admin' || role === 'principle') && (
           <div id="view-timetable-grading-tab" className="space-y-8 animate-fade-in text-slate-950">
             
             {/* Sector A: Timetable Periodic Scheduling logs */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
               
               <div className="md:col-span-5 bg-white border rounded-2xl p-5 space-y-4 text-left h-fit">
-                <h4 className="text-xs font-black text-slate-450 uppercase tracking-widest border-b pb-2">Add Period Scheduling Slot</h4>
+                <h4 className="text-xs font-black text-slate-300 uppercase tracking-widest border-b pb-2">Add Period Scheduling Slot</h4>
                 <form onSubmit={handleTimetableSubmit} className="space-y-3">
                   <div className="grid grid-cols-2 gap-2">
                     <div>
@@ -1573,16 +1590,16 @@ export default function SchoolAdminDashboard({
               </div>
 
               <div className="md:col-span-7 bg-white border rounded-2xl p-5 space-y-3">
-                <h4 className="text-xs font-black text-slate-450 uppercase tracking-widest border-b pb-2 text-left">Classes Period Schedule Logs</h4>
+                <h4 className="text-xs font-black text-slate-300 uppercase tracking-widest border-b pb-2 text-left">Classes Period Schedule Logs</h4>
                 <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
                   {timetable.map((slot) => (
                     <div key={slot.id} className="p-3 bg-slate-50 border rounded-xl text-xs text-left flex justify-between items-center">
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex-center-gap">
                           <strong className="text-slate-900 font-bold text-sm bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded leading-none">{slot.class}</strong>
                           <span className="text-[10px] text-slate-400 font-mono italic">{slot.day} &bull; {slot.period}</span>
                         </div>
-                        <p className="mt-1 font-extrabold text-slate-800">{slot.subject} - <span className="text-indigo-650">{slot.teacherName}</span></p>
+                        <p className="mt-1 font-extrabold text-slate-100">{slot.subject} - <span className="text-cyan-300">{slot.teacherName}</span></p>
                         <p className="text-[10px] text-slate-500 font-mono">{slot.time}</p>
                       </div>
                       <button
@@ -1603,7 +1620,7 @@ export default function SchoolAdminDashboard({
             {/* Sector B: Grading entries report sheet */}
             <div className="bg-white border rounded-2xl p-6 space-y-6 text-left">
               <div className="flex items-center gap-2 border-b pb-3">
-                <Award className="w-5 h-5 text-indigo-650" />
+                <Award className="w-5 h-5 text-cyan-300" />
                 <h3 className="text-base font-extrabold">Report Card Exam Grading Entries</h3>
               </div>
 
@@ -1648,7 +1665,7 @@ export default function SchoolAdminDashboard({
                     value={gradeExamName}
                     onChange={(e) => setGradeExamName(e.target.value)}
                     placeholder="Midterm, Finals..."
-                    className="w-full text-xs bg-slate-50 border rounded-lg p-2.5"
+                    className="input-small"
                     required
                   />
                 </div>
@@ -1662,7 +1679,7 @@ export default function SchoolAdminDashboard({
                       value={gradeMarks}
                       onChange={(e) => setGradeMarks(e.target.value)}
                       placeholder="e.g. 85"
-                      className="w-full text-xs bg-slate-50 border rounded-lg p-2.5"
+                      className="input-small"
                       required
                     />
                   </div>
@@ -1706,7 +1723,7 @@ export default function SchoolAdminDashboard({
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
                     {grades.map((gr) => (
-                      <tr key={gr.id} className="hover:bg-slate-50/50">
+                      <tr key={gr.id} className="hover:bg-slate-900/60">
                         <td className="py-2.5 px-3 font-bold text-slate-900">{gr.studentName}</td>
                         <td className="py-2.5 px-3">{gr.class}</td>
                         <td className="py-2.5 px-3">{gr.subject} &bull; {gr.examName}</td>
@@ -1756,7 +1773,7 @@ export default function SchoolAdminDashboard({
                 className="text-white hover:text-slate-200 outline-none cursor-pointer"
                 aria-label="Close modal box"
               >
-                <X className="w-5 h-5" />
+                <X className="icon-md" />
               </button>
             </div>
 
@@ -1774,7 +1791,7 @@ export default function SchoolAdminDashboard({
                         value={studentName}
                         onChange={(e) => setStudentName(e.target.value)}
                         placeholder="e.g. Rahul Patil"
-                        className="w-full text-xs bg-slate-50 border rounded-lg p-2.5"
+                        className="input-small"
                         required
                       />
                     </div>
@@ -1786,7 +1803,7 @@ export default function SchoolAdminDashboard({
                         value={studentRoll}
                         onChange={(e) => setStudentRoll(e.target.value)}
                         placeholder="e.g. R-106"
-                        className="w-full text-xs bg-slate-50 border rounded-lg p-2.5"
+                        className="input-small"
                         required
                       />
                     </div>
@@ -1848,7 +1865,7 @@ export default function SchoolAdminDashboard({
                           type="text"
                           value={parentPassword}
                           onChange={(e) => setParentPassword(e.target.value)}
-                          placeholder="P: password"
+                          placeholder="Enter password"
                           className="w-full text-xs bg-white border p-2 rounded tracking-wide font-mono"
                           required
                         />
@@ -1877,7 +1894,7 @@ export default function SchoolAdminDashboard({
                         value={teacherName}
                         onChange={(e) => setTeacherName(e.target.value)}
                         placeholder="e.g. Dr. Rajesh Deshmukh"
-                        className="w-full text-xs bg-slate-50 border rounded-lg p-2.5"
+                        className="input-small"
                         required
                       />
                     </div>
@@ -1889,7 +1906,7 @@ export default function SchoolAdminDashboard({
                         value={teacherSubject}
                         onChange={(e) => setTeacherSubject(e.target.value)}
                         placeholder="e.g. Mathematics"
-                        className="w-full text-xs bg-slate-50 border rounded-lg p-2.5"
+                        className="input-small"
                         required
                       />
                     </div>
@@ -1903,9 +1920,23 @@ export default function SchoolAdminDashboard({
                       value={teacherEmail}
                       onChange={(e) => setTeacherEmail(e.target.value)}
                       placeholder="e.g. teacher.dev@vcs.edu"
-                      className="w-full text-xs bg-slate-50 border rounded-lg p-2.5"
+                      className="input-small"
                       required
                     />
+                  </div>
+
+                  <div>
+                    <label htmlFor="modal-tc-designation" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Designation Role <span className="text-rose-500">*</span></label>
+                    <select
+                      id="modal-tc-designation"
+                      value={teacherDesignation}
+                      onChange={(e) => setTeacherDesignation(e.target.value as 'teacher' | 'accountant' | 'principle')}
+                      className="w-full text-xs bg-slate-50 border rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="teacher">Teacher (Faculty)</option>
+                      <option value="accountant">Accountant (Fee Manager)</option>
+                      <option value="principle">Principal (Admin)</option>
+                    </select>
                   </div>
 
                   <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-120 space-y-3.5">
@@ -1942,7 +1973,7 @@ export default function SchoolAdminDashboard({
                           type="text"
                           value={teacherPassword}
                           onChange={(e) => setTeacherPassword(e.target.value)}
-                          placeholder="e.g. teacher123"
+                          placeholder="Enter password"
                           className="w-full text-xs bg-white border p-2 rounded tracking-wide font-mono"
                           required
                         />

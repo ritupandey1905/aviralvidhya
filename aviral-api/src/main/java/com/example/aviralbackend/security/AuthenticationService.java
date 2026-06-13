@@ -3,6 +3,7 @@ package com.example.aviralbackend.security;
 import com.example.aviralbackend.dto.auth.LoginRequest;
 import com.example.aviralbackend.dto.auth.LoginResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -10,45 +11,52 @@ import org.springframework.stereotype.Service;
 public class AuthenticationService {
     
     private final JwtTokenProvider jwtTokenProvider;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
     
-    public AuthenticationService(JwtTokenProvider jwtTokenProvider) {
+    public AuthenticationService(JwtTokenProvider jwtTokenProvider, UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.jwtTokenProvider = jwtTokenProvider;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
     
     /**
-     * Authenticate user and generate JWT token
-     * 
-     * NOTE: In a production system, you would:
-     * 1. Query the database for the user
-     * 2. Verify password using BCrypt
-     * 3. Check if user is active
-     * 
-     * For now, this demonstrates the authentication flow
+     * Authenticate user against Firestore and generate JWT token
      */
     public LoginResponse authenticate(LoginRequest loginRequest) {
         String username = loginRequest.getUsername();
         String password = loginRequest.getPassword();
         String schoolId = loginRequest.getSchoolId();
+        boolean isSchoolContext = schoolId != null && !schoolId.isBlank();
         
-        // TODO: Replace with actual database lookup and password verification
-        // For demo purposes, accept any username/password combination
-        // In production:
-        // UserEntity user = userRepository.findByUsernameAndSchoolId(username, schoolId);
-        // if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
-        //     throw new AuthenticationException("Invalid credentials");
-        // }
+        log.info("User {} attempting to login{}",
+                username,
+                isSchoolContext ? " for school " + schoolId : " as global super admin");
         
-        log.info("User {} attempting to login for school {}", username, schoolId);
+        UserEntity user;
+        if (isSchoolContext) {
+            user = userRepository.findByUsernameOrEmailAndSchoolId(username, schoolId)
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid credentials or school"));
+        } else {
+            user = userRepository.findByUsernameOrEmail(username)
+                    .filter(u -> u.getRole() == Role.SUPER_ADMIN)
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid credentials or school"));
+        }
+                
+        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
+            throw new IllegalArgumentException("Invalid credentials or school");
+        }
         
-        // Determine role based on username pattern (for demo)
-        Role role = determineRole(username);
+        if (!user.isActive()) {
+            throw new IllegalArgumentException("User account is disabled");
+        }
         
         // Create user principal
         UserPrincipal userPrincipal = UserPrincipal.builder()
-                .username(username)
-                .schoolId(schoolId)
-                .role(role)
-                .email(username + "@" + schoolId + ".edu")
+                .username(user.getUsername())
+                .schoolId(user.getSchoolId())
+                .role(user.getRole())
+                .email(user.getEmail())
                 .issuedAt(System.currentTimeMillis())
                 .expiresAt(System.currentTimeMillis() + 3600000) // 1 hour
                 .build();
@@ -62,10 +70,10 @@ public class AuthenticationService {
         return LoginResponse.builder()
                 .token(token)
                 .refreshToken(refreshToken)
-                .username(username)
-                .schoolId(schoolId)
-                .role(role)
-                .email(userPrincipal.getEmail())
+                .username(user.getUsername())
+                .schoolId(user.getSchoolId())
+                .role(user.getRole())
+                .email(user.getEmail())
                 .expiresIn(3600000) // 1 hour in ms
                 .build();
     }
@@ -78,21 +86,6 @@ public class AuthenticationService {
             throw new IllegalArgumentException("Invalid or expired token");
         }
         return jwtTokenProvider.getUserPrincipalFromToken(token);
-    }
-    
-    /**
-     * Demo: Determine role based on username pattern
-     * In production, this comes from database
-     */
-    private Role determineRole(String username) {
-        if (username.contains("admin")) {
-            return username.contains("school") ? Role.SCHOOL_ADMIN : Role.SUPER_ADMIN;
-        } else if (username.contains("teacher")) {
-            return Role.TEACHER;
-        } else if (username.contains("parent")) {
-            return Role.PARENT;
-        }
-        return Role.PARENT; // Default role
     }
     
     /**

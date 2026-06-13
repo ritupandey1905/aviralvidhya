@@ -243,10 +243,10 @@ export const INITIAL_STUDENTS: Student[] = [
 ];
 
 export const INITIAL_TEACHERS: Teacher[] = [
-  { id: 't_1', name: 'Dr. Rajesh Deshmukh', subject: 'Mathematics', schoolId: 'school_delhi_public', email: 'rajesh.m@dvm.edu', teacherUsername: 'teacher.rajesh', teacherPassword: 'password' },
-  { id: 't_2', name: 'Mrs. Shweta Sen', subject: 'Science', schoolId: 'school_delhi_public', email: 'shweta.sen@dvm.edu', teacherUsername: 'teacher.shweta', teacherPassword: 'password' },
-  { id: 't_3', name: 'Shri Girdhari Lal', subject: 'Sanskrit & Vedic Studies', schoolId: 'school_vedanta_academy', email: 'girdhari.lal@vedanta.edu', teacherUsername: 'teacher.girdhari', teacherPassword: 'password' },
-  { id: 't_4', name: 'Mrs. Priya Patil', subject: 'English', schoolId: 'school_saraswati_pune', email: 'priya.patil@saraswati.edu', teacherUsername: 'teacher.priya', teacherPassword: 'password' }
+  { id: 't_1', name: 'Dr. Rajesh Deshmukh', designation: 'teacher', subject: 'Mathematics', schoolId: 'school_delhi_public', email: 'rajesh.m@dvm.edu', teacherUsername: 'teacher.rajesh', teacherPassword: 'password' },
+  { id: 't_2', name: 'Mrs. Shweta Sen', designation: 'teacher', subject: 'Science', schoolId: 'school_delhi_public', email: 'shweta.sen@dvm.edu', teacherUsername: 'teacher.shweta', teacherPassword: 'password' },
+  { id: 't_3', name: 'Shri Girdhari Lal', designation: 'teacher', subject: 'Sanskrit & Vedic Studies', schoolId: 'school_vedanta_academy', email: 'girdhari.lal@vedanta.edu', teacherUsername: 'teacher.girdhari', teacherPassword: 'password' },
+  { id: 't_4', name: 'Mrs. Priya Patil', designation: 'teacher', subject: 'English', schoolId: 'school_saraswati_pune', email: 'priya.patil@saraswati.edu', teacherUsername: 'teacher.priya', teacherPassword: 'password' }
 ];
 
 export const INITIAL_NOTICES: Notice[] = [
