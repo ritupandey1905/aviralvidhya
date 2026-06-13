@@ -597,27 +597,27 @@ export default function SchoolAdminDashboard({
       )}
 
       {/* LEFT COLUMN: INTERACTIVE NAVIGATION SIDEBAR */}
-      <div id="admin-sidebar" className="lg:col-span-3 bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4 flex flex-col h-fit text-slate-900">
-        <div className="flex items-center gap-3 pb-4 border-b border-slate-200">
-          <div className="p-2.5 bg-cyan-500/15 text-cyan-200 rounded-xl font-bold font-mono">
+      <div id="admin-sidebar" className="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-2xl p-4.5 space-y-4 flex flex-col h-fit text-slate-300 shadow-sm">
+        <div className="flex items-center gap-3 pb-4 border-b border-slate-800">
+          <div className="p-2.5 bg-blue-600 text-white rounded-xl font-bold font-mono text-xs leading-none">
             {activeSchool?.schoolCode || "SCH"}
           </div>
           <div>
             <h3 className="text-sm font-extrabold text-white leading-none">Vidyalaya ERP</h3>
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tenant Desk</span>
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mt-1">Tenant Desk</span>
           </div>
         </div>
 
         {/* Sidebar Tabs List Buttons */}
-        <nav className="flex flex-col gap-1.5" aria-label="Dashboard views navigation">
+        <nav className="flex flex-col gap-1" aria-label="Dashboard views navigation">
           
           <button
             onClick={() => setActiveTab('dashboard')}
             className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition-all border border-transparent cursor-pointer ${
-              activeTab === 'dashboard' ? aTheme.sideActive : 'text-slate-600 hover:bg-slate-50'
+              activeTab === 'dashboard' ? aTheme.sideActive : 'text-slate-400 hover:bg-slate-800 hover:text-white'
             }`}
           >
-            <Sliders className="w-4 h-4 text-slate-500" />
+            <Sliders className="w-4 h-4" />
             <span>{curr.sidebarDashboard}</span>
           </button>
 
@@ -625,10 +625,10 @@ export default function SchoolAdminDashboard({
             <button
               onClick={() => setActiveTab('attendance')}
               className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition-all border border-transparent cursor-pointer ${
-                activeTab === 'attendance' ? aTheme.sideActive : 'text-slate-600 hover:bg-slate-50'
+                activeTab === 'attendance' ? aTheme.sideActive : 'text-slate-400 hover:bg-slate-800 hover:text-white'
               }`}
             >
-              <Calendar className="w-4 h-4 text-slate-500" />
+              <Calendar className="w-4 h-4" />
               <span>{curr.sidebarAttendance}</span>
             </button>
           )}
@@ -637,10 +637,10 @@ export default function SchoolAdminDashboard({
             <button
               onClick={() => setActiveTab('fees')}
               className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition-all border border-transparent cursor-pointer ${
-                activeTab === 'fees' ? aTheme.sideActive : 'text-slate-600 hover:bg-slate-50'
+                activeTab === 'fees' ? aTheme.sideActive : 'text-slate-400 hover:bg-slate-800 hover:text-white'
               }`}
             >
-              <DollarSign className="w-4 h-4 text-slate-500" />
+              <DollarSign className="w-4 h-4" />
               <span>{curr.sidebarFees}</span>
             </button>
           )}
@@ -649,10 +649,10 @@ export default function SchoolAdminDashboard({
             <button
               onClick={() => setActiveTab('students')}
               className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition-all border border-transparent cursor-pointer ${
-                activeTab === 'students' ? aTheme.sideActive : 'text-slate-600 hover:bg-slate-50'
+                activeTab === 'students' ? aTheme.sideActive : 'text-slate-400 hover:bg-slate-800 hover:text-white'
               }`}
             >
-              <Users className="w-4 h-4 text-slate-500" />
+              <Users className="w-4 h-4" />
               <span>{curr.sidebarStudents}</span>
             </button>
           )}
@@ -661,10 +661,10 @@ export default function SchoolAdminDashboard({
             <button
               onClick={() => setActiveTab('teachers')}
               className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition-all border border-transparent cursor-pointer ${
-                activeTab === 'teachers' ? aTheme.sideActive : 'text-slate-600 hover:bg-slate-50'
+                activeTab === 'teachers' ? aTheme.sideActive : 'text-slate-400 hover:bg-slate-800 hover:text-white'
               }`}
             >
-              <UserCheck className="w-4 h-4 text-slate-500" />
+              <UserCheck className="w-4 h-4" />
               <span>{curr.sidebarTeachers}</span>
             </button>
           )}
@@ -673,10 +673,10 @@ export default function SchoolAdminDashboard({
             <button
               onClick={() => setActiveTab('notices')}
               className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition-all border border-transparent cursor-pointer ${
-                activeTab === 'notices' ? aTheme.sideActive : 'text-slate-600 hover:bg-slate-50'
+                activeTab === 'notices' ? aTheme.sideActive : 'text-slate-400 hover:bg-slate-800 hover:text-white'
               }`}
             >
-              <FileText className="w-4 h-4 text-slate-500" />
+              <FileText className="w-4 h-4" />
               <span>{curr.sidebarNotices}</span>
             </button>
           )}
@@ -685,10 +685,10 @@ export default function SchoolAdminDashboard({
             <button
               onClick={() => setActiveTab('timetable_results')}
               className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition-all border border-transparent cursor-pointer ${
-                activeTab === 'timetable_results' ? aTheme.sideActive : 'text-slate-600 hover:bg-slate-50'
+                activeTab === 'timetable_results' ? aTheme.sideActive : 'text-slate-400 hover:bg-slate-800 hover:text-white'
               }`}
             >
-              <Award className="w-4 h-4 text-slate-500" />
+              <Award className="w-4 h-4" />
               <span>{curr.sidebarTimetables}</span>
             </button>
           )}
@@ -711,9 +711,9 @@ export default function SchoolAdminDashboard({
       <div id="admin-main-stage" className="lg:col-span-9 space-y-6">
         
         {/* UPPER CONTEXT CARD HEADER */}
-        <div id="admin-header-card" className="bg-white text-slate-900 p-6 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border border-slate-200 shadow-sm">
-          <div className="flex-center-gap-lg">
-            <div className={`p-3 rounded-xl bg-white/10 ${aTheme.text} font-bold text-lg`}>
+        <div id="admin-header-card" className="bg-white text-slate-900 p-6 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border border-slate-200/80 shadow-sm animate-fade-in">
+          <div className="flex items-center gap-4">
+            <div className={`p-3 rounded-xl bg-slate-50 border border-slate-100 ${aTheme.text} font-bold text-lg shadow-sm flex items-center justify-center`}>
               ⭐
             </div>
             <div>
@@ -769,27 +769,27 @@ export default function SchoolAdminDashboard({
 
             {/* FINANCIAL STATS CARDS GRID */}
             <div>
-              <p className="text-xs font-black text-slate-300 uppercase tracking-widest mb-3">Institutional Capital Ledger balances</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Institutional Capital Ledger balances</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 
-                <div className="bg-slate-950/80 border border-slate-700/40 rounded-xl p-4 space-y-1">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">{curr.financialMetricTotalCollected}</p>
-                  <h4 className="text-lg font-black text-emerald-400">₹{totalFeesCollected.toLocaleString('en-IN')}</h4>
+                <div className="bg-white border border-slate-200 rounded-xl p-4.5 space-y-1 shadow-sm hover:shadow transition-shadow">
+                  <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{curr.financialMetricTotalCollected}</p>
+                  <h4 className="text-lg font-extrabold text-emerald-600">₹{totalFeesCollected.toLocaleString('en-IN')}</h4>
                 </div>
 
-                <div className="bg-slate-950/80 border border-slate-700/40 rounded-xl p-4 space-y-1">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">{curr.financialMetricTotalDue}</p>
-                  <h4 className="text-lg font-black text-rose-400">₹{totalDuesExpected.toLocaleString('en-IN')}</h4>
+                <div className="bg-white border border-slate-200 rounded-xl p-4.5 space-y-1 shadow-sm hover:shadow transition-shadow">
+                  <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{curr.financialMetricTotalDue}</p>
+                  <h4 className="text-lg font-extrabold text-rose-600">₹{totalDuesExpected.toLocaleString('en-IN')}</h4>
                 </div>
 
-                <div className="bg-slate-950/80 border border-slate-700/40 rounded-xl p-4 space-y-1">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">{curr.financialMetricCollectedThisMonth}</p>
-                  <h4 className="text-lg font-black text-slate-100">₹{Math.round(totalFeesCollected * 0.15).toLocaleString('en-IN')}</h4>
+                <div className="bg-white border border-slate-200 rounded-xl p-4.5 space-y-1 shadow-sm hover:shadow transition-shadow">
+                  <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{curr.financialMetricCollectedThisMonth}</p>
+                  <h4 className="text-lg font-extrabold text-slate-900">₹{Math.round(totalFeesCollected * 0.15).toLocaleString('en-IN')}</h4>
                 </div>
 
-                <div className="bg-slate-950/80 border border-slate-700/40 rounded-xl p-4 space-y-1">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">{curr.financialMetricExpenses}</p>
-                  <h4 className="text-lg font-black text-amber-400">₹{totalExpenses.toLocaleString('en-IN')}</h4>
+                <div className="bg-white border border-slate-200 rounded-xl p-4.5 space-y-1 shadow-sm hover:shadow transition-shadow">
+                  <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{curr.financialMetricExpenses}</p>
+                  <h4 className="text-lg font-extrabold text-amber-600">₹{totalExpenses.toLocaleString('en-IN')}</h4>
                 </div>
 
               </div>
@@ -798,25 +798,25 @@ export default function SchoolAdminDashboard({
             {/* OPERATIONAL RATIOS & ATTENDANCE INDICATORS */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-3">
-                <h4 className="text-xs font-black text-slate-300 uppercase tracking-wider">Attendance statistics</h4>
+              <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-3 shadow-sm">
+                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Attendance statistics</h4>
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-bold text-slate-400">
+                    <div className="flex justify-between text-xs font-semibold text-slate-600">
                       <span>Students Present</span>
-                      <span className="text-emerald-400 font-extrabold">{studentPresentRate}%</span>
+                      <span className="text-emerald-600 font-bold">{studentPresentRate}%</span>
                     </div>
-                    <div className="w-full bg-slate-800 rounded-full h-2">
+                    <div className="w-full bg-slate-100 rounded-full h-2">
                       <div className="bg-emerald-500 h-2 rounded-full transition-all duration-500" style={{ width: `${studentPresentRate}%` }}></div>
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-bold text-slate-400">
+                    <div className="flex justify-between text-xs font-semibold text-slate-600">
                       <span>Teachers Live</span>
-                      <span className="text-cyan-400 font-extrabold">{facultyPresentRate}%</span>
+                      <span className="text-cyan-600 font-bold">{facultyPresentRate}%</span>
                     </div>
-                    <div className="w-full bg-slate-800 rounded-full h-2">
+                    <div className="w-full bg-slate-100 rounded-full h-2">
                       <div className="bg-cyan-500 h-2 rounded-full transition-all duration-500" style={{ width: `${facultyPresentRate}%` }}></div>
                     </div>
                   </div>

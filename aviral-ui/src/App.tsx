@@ -66,7 +66,7 @@ export default function App() {
   // Portal gateway states
   const [enteredSchoolCode, setEnteredSchoolCode] = useState<string>('');
   const [resolvedSchool, setResolvedSchool] = useState<School | null>(null);
-  const [loginRole, setLoginRole] = useState<'school_admin' | 'teacher' | 'parent'>('school_admin');
+  const [loginRole, setLoginRole] = useState<Role>('school_admin');
   const [loggedInTeacher, setLoggedInTeacher] = useState<Teacher | null>(null);
   const [loggedInStudent, setLoggedInStudent] = useState<Student | null>(null);
   
@@ -452,470 +452,418 @@ export default function App() {
   const selectedSchoolInfo = schools.find(s => s.id === activeSchoolId);
 
   return (
-    <div id="school-management-application-frame" className="app-container">
+    <div id="school-management-application-frame" className="app-container min-h-screen bg-slate-50 flex flex-col">
       
-      {/* CORPORATE HEADER */}
-      <header className="border-b border-slate-200/60 sticky top-0 z-50 bg-white/80 backdrop-blur-xl shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          {/* Logo & Brand */}
-          <div className="flex-center-gap-lg">
-            <div className="text-2xl font-black text-indigo-600">🎓</div>
-            <div>
-              <h1 className="heading-3 bg-clip-text text-transparent bg-gradient-to-r from-indigo-700 to-blue-600">AviralVidhya</h1>
-              <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">School Management Platform</p>
+      {/* CORPORATE APP HEADER (AUTHENTICATED ONLY) */}
+      {isAuthenticated && (
+        <header className="border-b border-slate-200/80 bg-white sticky top-0 z-50 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            {/* Left: Branding & Tenant Context */}
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center text-lg font-bold shadow-sm">
+                {selectedSchoolInfo ? "🏫" : "🎓"}
+              </div>
+              <div>
+                <h1 className="text-sm font-extrabold text-slate-900 leading-tight">
+                  {selectedSchoolInfo ? selectedSchoolInfo.name : "AviralVidhya Administration"}
+                </h1>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                  {activeRole.replace('_', ' ')} Workspace
+                </p>
+              </div>
             </div>
-          </div>
 
-          {/* Navigation & Super Admin Link */}
-          <nav className="flex items-center gap-6">
-            {!isAuthenticated && (
-              <>
-                <a href="#features" className="text-sm text-slate-600 hover:text-indigo-600 font-semibold transition-colors">Features</a>
-                <a href="#pricing" className="text-sm text-slate-600 hover:text-indigo-600 font-semibold transition-colors">Pricing</a>
-                <a href="#contact" className="text-sm text-slate-600 hover:text-indigo-600 font-semibold transition-colors">Support</a>
-                <button
-                  onClick={() => {
-                    setIsSuperAdminLogMode(true);
-                    setResolvedSchool(null);
-                    setLoginError(null);
-                    setEnteredSchoolCode('');
-                  }}
-                  className="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition-all border border-indigo-200 px-4 py-2 rounded-xl hover:bg-indigo-50 shadow-sm"
-                >
-                  Admin Login
-                </button>
-              </>
-            )}
-            {isAuthenticated && (
+            {/* Right: Profile Actions */}
+            <div className="flex items-center gap-4">
               <button
                 onClick={handleLogout}
-                className="text-sm font-semibold text-slate-600 hover:text-slate-900 px-4 py-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition"
+                className="text-xs font-bold text-slate-650 hover:text-slate-900 border border-slate-200 hover:border-slate-300 px-3.5 py-2 rounded-xl transition-all shadow-sm bg-white cursor-pointer"
               >
                 Sign Out
               </button>
-            )}
-          </nav>
-        </div>
-      </header>
+            </div>
+          </div>
+        </header>
+      )}
 
-      {/* MAIN CONTENT */}
-      <main className="flex-1">
+      {/* MAIN CONTENT CANVAS */}
+      <main className="flex-1 flex flex-col">
         {!isAuthenticated ? (
-          <div className="space-y-0">
-            {/* HERO SECTION WITH SCHOOL LOGIN */}
-            <section className="relative py-24 px-4 hero-mesh overflow-hidden">
-              <div className="absolute inset-0 pattern-grid opacity-60"></div>
-              <div className="max-w-6xl mx-auto relative z-10">
-                <div className="grid lg:grid-cols-2 gap-16 items-center">
-                  {/* Left: Hero Text & Value Prop */}
-                  <div className="space-y-8">
-                    <div>
-                      <span className="inline-block px-4 py-2 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold uppercase tracking-widest mb-6 shadow-sm border border-indigo-200/50">
-                        For Schools & Parents
-                      </span>
-                      <h2 className="text-5xl lg:text-7xl font-black text-slate-900 leading-[1.1] tracking-tight">
-                        Modern School <br/>
-                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-500">Management Platform</span>
-                      </h2>
-                    </div>
-                    <p className="text-lg text-slate-600 leading-relaxed max-w-xl">
-                      Streamline student management, attendance tracking, fee collection, and parent communication in one unified, elegant portal. Trusted by 500+ top schools.
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-6 pt-4">
-                      <div className="flex items-center gap-3 text-sm font-semibold text-slate-700 bg-white/60 px-4 py-2 rounded-xl border border-slate-200 backdrop-blur-sm">
-                        <CheckCircle className="w-5 h-5 text-indigo-500" />
-                        <span>Real-time tracking</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm font-semibold text-slate-700 bg-white/60 px-4 py-2 rounded-xl border border-slate-200 backdrop-blur-sm">
-                        <CheckCircle className="w-5 h-5 text-indigo-500" />
-                        <span>Automated fees</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm font-semibold text-slate-700 bg-white/60 px-4 py-2 rounded-xl border border-slate-200 backdrop-blur-sm">
-                        <CheckCircle className="w-5 h-5 text-indigo-500" />
-                        <span>Smart portals</span>
-                      </div>
-                    </div>
+          <div className="flex-1 flex flex-col lg:flex-row min-h-screen">
+            {/* Left Panel: Corporate Info & Value Proposition */}
+            <div className="hidden lg:flex lg:w-3/5 bg-slate-900 text-white p-16 flex-col justify-between relative overflow-hidden">
+              {/* Glowing backdrops */}
+              <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-600/10 blur-[120px] pointer-events-none"></div>
+              <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-indigo-500/10 blur-[120px] pointer-events-none"></div>
+              <div className="absolute inset-0 pattern-grid opacity-20 pointer-events-none"></div>
+              
+              {/* Top Branding */}
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-xl shadow-md">
+                  🎓
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold tracking-tight text-white leading-none">
+                    AviralVidhya
+                  </h1>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+                    Enterprise School ERP Suite
+                  </p>
+                </div>
+              </div>
+
+              {/* Central Marketing Prop */}
+              <div className="my-auto max-w-lg space-y-8 relative z-10">
+                <div className="space-y-4">
+                  <span className="inline-block px-3.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                    Next-Gen Educational ERP
+                  </span>
+                  <h2 className="text-4xl xl:text-5xl font-extrabold tracking-tight text-white leading-tight">
+                    Centralized Operations, Elevated Education.
+                  </h2>
+                  <p className="text-slate-400 text-sm leading-relaxed">
+                    Connecting school administrators, teaching faculty, parents, and students in one integrated workspace. Designed with absolute data isolation and dynamic whitelabel modules.
+                  </p>
+                </div>
+
+                {/* Counter Metric Row */}
+                <div className="grid grid-cols-3 gap-6 pt-6 border-t border-slate-800">
+                  <div>
+                    <h4 className="text-xl font-bold text-white">500+</h4>
+                    <p className="text-[10px] text-slate-500 mt-0.5 uppercase tracking-wider font-semibold">Institutes</p>
                   </div>
+                  <div>
+                    <h4 className="text-xl font-bold text-white">200K+</h4>
+                    <p className="text-[10px] text-slate-500 mt-0.5 uppercase tracking-wider font-semibold">Students</p>
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-bold text-white">99.9%</h4>
+                    <p className="text-[10px] text-slate-500 mt-0.5 uppercase tracking-wider font-semibold">Uptime SLA</p>
+                  </div>
+                </div>
 
-                  {/* Right: School Login Form (MAIN CTA) */}
-                  <div className="space-y-6 relative">
-                    {/* Decorative blurred blob behind the card */}
-                    <div className="absolute -inset-4 bg-gradient-to-tr from-indigo-400 to-blue-300 opacity-20 blur-3xl rounded-full z-0"></div>
-                    {!resolvedSchool && !isSuperAdminLogMode ? (
-                      <div className="auth-card">
-                        <div>
-                          <h3 className="heading-2">School Portal Login</h3>
-                          <p className="text-sm text-slate-600 mt-2">Access your school dashboard</p>
+                {/* Key Checklist Features */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-5 h-5 rounded bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-xs text-blue-400 font-bold">✓</div>
+                    <span className="text-xs font-semibold text-slate-300">Multi-tenant institutional isolation layers</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-5 h-5 rounded bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-xs text-blue-400 font-bold">✓</div>
+                    <span className="text-xs font-semibold text-slate-300">White-labeled visual interface customization</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-5 h-5 rounded bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-xs text-blue-400 font-bold">✓</div>
+                    <span className="text-xs font-semibold text-slate-300">Centralized fees ledger & dynamic timetable blocks</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Copyright details */}
+              <div className="text-[11px] text-slate-500 flex justify-between items-center relative z-10 border-t border-slate-800/60 pt-6">
+                <p>© 2026 AviralVidhya. All rights reserved.</p>
+                <div className="flex gap-4">
+                  <span className="hover:text-slate-400 cursor-pointer transition-colors">Privacy Policy</span>
+                  <span className="hover:text-slate-400 cursor-pointer transition-colors">Terms of Use</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Panel: Portal Access Form */}
+            <div className="w-full lg:w-2/5 p-8 sm:p-12 lg:p-16 flex flex-col justify-between bg-slate-50/50 min-h-screen">
+              {/* Mobile Branding Header */}
+              <div className="flex lg:hidden items-center justify-between pb-8 border-b border-slate-200">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-md shadow-sm">🎓</div>
+                  <h1 className="text-base font-extrabold text-slate-900">AviralVidhya</h1>
+                </div>
+                <button
+                  onClick={() => {
+                    setIsSuperAdminLogMode(!isSuperAdminLogMode);
+                    setResolvedSchool(null);
+                    setEnteredSchoolCode('');
+                    setLoginError(null);
+                  }}
+                  className="text-xs font-bold text-blue-600 hover:underline"
+                >
+                  {isSuperAdminLogMode ? "School Portal" : "Super Admin Console"}
+                </button>
+              </div>
+
+              {/* Desktop Console Toggle */}
+              <div className="hidden lg:flex justify-end pb-4">
+                <button
+                  onClick={() => {
+                    setIsSuperAdminLogMode(!isSuperAdminLogMode);
+                    setResolvedSchool(null);
+                    setEnteredSchoolCode('');
+                    setLoginError(null);
+                  }}
+                  className="text-xs font-bold text-slate-600 hover:text-blue-600 transition-colors border border-slate-200 px-4 py-2 rounded-xl bg-white shadow-sm hover:shadow cursor-pointer"
+                >
+                  {isSuperAdminLogMode ? "🏫 Exit Admin Console" : "🔑 Super Admin Console"}
+                </button>
+              </div>
+
+              {/* Main Credentials Box */}
+              <div className="my-auto max-w-sm w-full mx-auto space-y-6">
+                
+                {/* STATE 1: Enter School Access Code */}
+                {!resolvedSchool && !isSuperAdminLogMode && (
+                  <div className="space-y-6 animate-fade-in">
+                    <div>
+                      <h3 className="heading-1">School Portal</h3>
+                      <p className="text-body mt-2">Enter your institution's registration code to access the tenancy.</p>
+                    </div>
+
+                    <form onSubmit={handleSchoolCodeSubmit} className="space-y-4">
+                      <div className="space-y-2">
+                        <label htmlFor="school-code-input" className="form-label">School Access Code</label>
+                        <div className="relative">
+                          <input
+                            id="school-code-input"
+                            type="text"
+                            maxLength={10}
+                            value={enteredSchoolCode}
+                            onChange={(e) => setEnteredSchoolCode(e.target.value.toUpperCase())}
+                            placeholder="e.g. DPS101, VPG202"
+                            className="form-input text-center font-mono font-bold text-lg tracking-widest text-slate-900 py-3.5 focus:border-blue-500"
+                            required
+                          />
+                          <Building className="w-5 h-5 text-slate-400 absolute right-4 top-3.5 pointer-events-none" />
                         </div>
-
-                        <form onSubmit={handleSchoolCodeSubmit} className="space-y-4">
-                          <div>
-                            <label className="form-label">School Access Code</label>
-                            <div className="relative">
-                              <input
-                                id="school-code-input"
-                                type="text"
-                                maxLength={10}
-                                value={enteredSchoolCode}
-                                onChange={(e) => setEnteredSchoolCode(e.target.value.toUpperCase())}
-                                placeholder="e.g., DPS101"
-                                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-center font-mono font-bold text-lg tracking-widest"
-                                required
-                              />
-                              <Building className="w-5 h-5 text-slate-400 absolute right-4 top-3 pointer-events-none" />
-                            </div>
-                            {schoolCodeError && (
-                              <p className="text-xs text-rose-600 mt-2 font-semibold">⚠️ {schoolCodeError}</p>
-                            )}
-                          </div>
-
-                          <button
-                            type="submit"
-                            className="btn btn-primary w-full flex-center gap-2"
-                          >
-                            <ArrowRight className="icon-sm" />
-                            Continue to Login
-                          </button>
-                        </form>
-
-                        {schools.length > 0 && (
-                          <div className="border-t pt-4 space-y-3">
-                            <p className="text-caption">Sample Schools:</p>
-                            <div className="grid grid-cols-2 gap-2">
-                              {schools.map(s => (
-                                <button
-                                  key={s.id}
-                                  onClick={() => {
-                                    setEnteredSchoolCode(s.schoolCode);
-                                    setResolvedSchool(s);
-                                    setActiveSchoolId(s.id);
-                                    setLoginError(null);
-                                    setSchoolCodeError(null);
-                                  }}
-                                  className="p-3 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-lg text-center transition text-sm font-semibold text-slate-700 hover:text-blue-700"
-                                >
-                                  <p className="text-xs text-blue-600 font-bold">{s.schoolCode}</p>
-                                  <p className="text-[11px] text-slate-600 mt-0.5">{s.name.split(' ')[0]}</p>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
+                        {schoolCodeError && (
+                          <p className="text-xs text-rose-600 font-semibold mt-1">⚠️ {schoolCodeError}</p>
                         )}
                       </div>
-                    ) : resolvedSchool && !isSuperAdminLogMode ? (
-                      <div className="glass-panel rounded-2xl p-8 space-y-6 animate-fade-in">
-                        <button
-                          onClick={() => {
-                            setResolvedSchool(null);
-                            setEnteredSchoolCode('');
-                            setLoginError(null);
-                          }}
-                          className="text-xs font-bold text-slate-500 hover:text-slate-700 flex items-center gap-1"
-                        >
-                          <ChevronLeft className="icon-sm" />
-                          Back
-                        </button>
 
-                        <div className="border-b pb-4">
-                          <div className="w-12 h-12 rounded-2xl bg-orange-100 flex items-center justify-center text-3xl mb-3">🏫</div>
-                          <h3 className="heading-3">{resolvedSchool.name}</h3>
-                          <p className="text-sm text-slate-600 mt-1">📍 {resolvedSchool.city}, {resolvedSchool.state}</p>
+                      <button
+                        type="submit"
+                        className="btn-primary w-full py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <span>Access Dashboard</span>
+                        <ArrowRight className="icon-sm" />
+                      </button>
+                    </form>
+
+                    {/* Preloaded Demo Tenant Selector */}
+                    {schools.length > 0 && (
+                      <div className="pt-6 border-t border-slate-200 space-y-3">
+                        <p className="text-caption text-slate-400">Sample Schools:</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {schools.map(s => (
+                            <button
+                              key={s.id}
+                              onClick={() => {
+                                setEnteredSchoolCode(s.schoolCode);
+                                setResolvedSchool(s);
+                                setActiveSchoolId(s.id);
+                                setLoginError(null);
+                                setSchoolCodeError(null);
+                              }}
+                              className="p-3 bg-white hover:bg-blue-50/40 border border-slate-200 rounded-xl text-left transition hover:border-blue-300/80 cursor-pointer"
+                            >
+                              <span className="block text-xs font-mono font-bold text-blue-600">{s.schoolCode}</span>
+                              <span className="block text-[11px] font-semibold text-slate-700 truncate mt-0.5">{s.name}</span>
+                            </button>
+                          ))}
                         </div>
-
-                        <form onSubmit={handleSchoolLogin} className="space-y-4">
-                          <div>
-                            <label className="form-label">Username or Email</label>
-                            <input
-                              id="school-user-input"
-                              type="text"
-                              value={loginUsername}
-                              onChange={(e) => setLoginUsername(e.target.value)}
-                              placeholder="admin@school.com"
-                              className="form-input"
-                              required
-                            />
-                          </div>
-
-                          <div>
-                            <label className="form-label">Password</label>
-                            <input
-                              id="school-pass-input"
-                              type="password"
-                              value={loginPassword}
-                              onChange={(e) => setLoginPassword(e.target.value)}
-                              placeholder="••••••••"
-                              className="form-input"
-                              required
-                            />
-                          </div>
-
-                          {loginError && (
-                            <p className="text-xs text-rose-600 bg-rose-50 p-3 rounded-lg font-semibold">⚠️ {loginError}</p>
-                          )}
-
-                          <button
-                            type="submit"
-                            className="btn btn-primary w-full flex-center gap-2"
-                          >
-                            <Lock className="icon-sm" />
-                            Sign In
-                          </button>
-                        </form>
                       </div>
-                    ) : isSuperAdminLogMode && !resolvedSchool ? (
-                      <div className="glass-panel rounded-2xl p-8 space-y-6 animate-fade-in">
-                        <button
-                          onClick={() => {
-                            setIsSuperAdminLogMode(false);
-                            setLoginError(null);
-                          }}
-                          className="text-xs font-bold text-slate-500 hover:text-slate-700 flex items-center gap-1"
-                        >
-                          <ChevronLeft className="icon-sm" />
-                          Back
-                        </button>
+                    )}
+                  </div>
+                )}
 
-                        <div>
-                          <h3 className="heading-2">Super Admin Access</h3>
-                          <p className="text-sm text-slate-600 mt-2">Manage tenants and system settings</p>
-                        </div>
+                {/* STATE 2: Authenticated School Credentials input */}
+                {resolvedSchool && !isSuperAdminLogMode && (
+                  <div className="space-y-6 animate-fade-in">
+                    <button
+                      onClick={() => {
+                        setResolvedSchool(null);
+                        setEnteredSchoolCode('');
+                        setLoginError(null);
+                      }}
+                      className="text-xs font-bold text-slate-500 hover:text-slate-750 flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      <ChevronLeft className="icon-sm" />
+                      <span>Back to Portal Search</span>
+                    </button>
 
-                        <form onSubmit={handleSuperAdminLogin} className="space-y-4">
-                          <div>
-                            <label className="form-label">Email</label>
-                            <input
-                              id="super-user-input"
-                              type="email"
-                              value={loginUsername}
-                              onChange={(e) => setLoginUsername(e.target.value)}
-                              placeholder="admin@system.local"
-                              className="form-input"
-                              required
-                            />
-                          </div>
-
-                          <div>
-                            <label className="form-label">Password</label>
-                            <input
-                              id="super-pass-input"
-                              type="password"
-                              value={loginPassword}
-                              onChange={(e) => setLoginPassword(e.target.value)}
-                              placeholder="••••••••"
-                              className="form-input"
-                              required
-                            />
-                          </div>
-
-                          {loginError && (
-                            <p className="text-xs text-rose-600 bg-rose-50 p-3 rounded-lg font-semibold">⚠️ {loginError}</p>
-                          )}
-
-                          <button
-                            type="submit"
-                            className="btn-primary w-full py-3 rounded-xl font-semibold uppercase tracking-wide text-sm"
-                          >
-                            Sign In as Admin
-                          </button>
-                        </form>
+                    <div className="pb-4 border-b border-slate-200">
+                      <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-2xl mb-3 shadow-sm">
+                        🏫
                       </div>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* FEATURES SECTION */}
-            <section id="features" className="py-20 px-4 bg-white">
-              <div className="max-w-6xl mx-auto">
-                <div className="text-center mb-16 space-y-4">
-                  <h2 className="heading-1">Powerful Features</h2>
-                  <p className="text-lg text-slate-600">Everything you need to run your school efficiently</p>
-                </div>
-
-                <div className="grid md:grid-cols-3 gap-8">
-                  <div className="feature-card">
-                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto">
-                      <Users className="w-6 h-6 text-blue-600" />
+                      <h3 className="heading-2">{resolvedSchool.name}</h3>
+                      <p className="text-xs text-slate-550 mt-1">📍 {resolvedSchool.city}, {resolvedSchool.state}</p>
                     </div>
-                    <h3 className="heading-4">Student Management</h3>
-                    <p className="text-body">Manage student profiles, attendance, grades, and fees in one place</p>
-                  </div>
 
-                  <div className="feature-card">
-                    <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mx-auto">
-                      <BookOpen className="w-6 h-6 text-emerald-600" />
+                    <form onSubmit={handleSchoolLogin} className="space-y-4.5">
+                      <div className="space-y-1.5">
+                        <label htmlFor="school-user-input" className="form-label">Username / Email ID</label>
+                        <input
+                          id="school-user-input"
+                          type="text"
+                          value={loginUsername}
+                          onChange={(e) => setLoginUsername(e.target.value)}
+                          placeholder="e.g. principal@dps.edu"
+                          className="form-input"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label htmlFor="school-pass-input" className="form-label">Password Pin</label>
+                        <input
+                          id="school-pass-input"
+                          type="password"
+                          value={loginPassword}
+                          onChange={(e) => setLoginPassword(e.target.value)}
+                          placeholder="••••••••"
+                          className="form-input"
+                          required
+                        />
+                      </div>
+
+                      {loginError && (
+                        <p className="text-xs text-rose-700 bg-rose-50 border border-rose-100 p-3.5 rounded-xl font-medium leading-relaxed">
+                          ⚠️ {loginError}
+                        </p>
+                      )}
+
+                      <button
+                        type="submit"
+                        className="btn-primary w-full py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <Lock className="icon-sm" />
+                        <span>Sign In</span>
+                      </button>
+                    </form>
+                  </div>
+                )}
+
+                {/* STATE 3: Super Admin Console credentials form */}
+                {isSuperAdminLogMode && !resolvedSchool && (
+                  <div className="space-y-6 animate-fade-in">
+                    <div className="lg:hidden">
+                      <button
+                        onClick={() => {
+                          setIsSuperAdminLogMode(false);
+                          setLoginError(null);
+                        }}
+                        className="text-xs font-bold text-slate-500 hover:text-slate-700 flex items-center gap-1 cursor-pointer"
+                      >
+                        <ChevronLeft className="icon-sm" />
+                        <span>Exit Console</span>
+                      </button>
                     </div>
-                    <h3 className="heading-4">Teacher Portal</h3>
-                    <p className="text-body">Mark attendance, assign homework, and manage grades easily</p>
-                  </div>
 
-                  <div className="feature-card">
-                    <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mx-auto">
-                      <GraduationCap className="w-6 h-6 text-orange-600" />
-                    </div>
-                    <h3 className="heading-4">Parent Updates</h3>
-                    <p className="text-body">Keep parents informed about fees, attendance, and school events</p>
-                  </div>
-
-                  <div className="feature-card">
-                    <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center mx-auto">
-                      <Layers className="w-6 h-6 text-violet-600" />
-                    </div>
-                    <h3 className="heading-4">Fee Collection</h3>
-                    <p className="text-body">Track payments, generate invoices, and send reminders automatically</p>
-                  </div>
-
-                  <div className="feature-card">
-                    <div className="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center mx-auto">
-                      <Bell className="w-6 h-6 text-pink-600" />
-                    </div>
-                    <h3 className="heading-4">Notifications</h3>
-                    <p className="text-body">Send instant alerts to parents about important school updates</p>
-                  </div>
-
-                  <div className="feature-card">
-                    <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center mx-auto">
-                      <Shield className="w-6 h-6 text-teal-600" />
-                    </div>
-                    <h3 className="heading-4">Secure & Scalable</h3>
-                    <p className="text-body">Enterprise-grade security with cloud-based infrastructure</p>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* PRICING SECTION */}
-            <section id="pricing" className="py-20 px-4 bg-slate-50">
-              <div className="max-w-6xl mx-auto">
-                <div className="text-center mb-16 space-y-4">
-                  <h2 className="heading-1">Transparent Pricing</h2>
-                  <p className="text-lg text-slate-600">Choose the plan that works for your school</p>
-                </div>
-
-                <div className="grid md:grid-cols-3 gap-8">
-                  <div className="glass-panel rounded-2xl p-8 space-y-6 border border-slate-200 hover:border-blue-300 transition">
                     <div>
-                      <h3 className="heading-3">Basic</h3>
-                      <p className="text-3xl font-black text-slate-900 mt-2">₹9,999<span className="text-sm text-slate-600 font-normal">/mo</span></p>
+                      <h3 className="heading-1">Super Admin</h3>
+                      <p className="text-body mt-2">Authenticate to configure multi-tenant licenses and configure system modules.</p>
                     </div>
-                    <ul className="space-y-3 text-sm text-slate-700">
-                      <li className="flex-center-gap"><CheckCircle className="w-4 h-4 text-emerald-500" /> Up to 500 students</li>
-                      <li className="flex-center-gap"><CheckCircle className="w-4 h-4 text-emerald-500" /> Attendance tracking</li>
-                      <li className="flex-center-gap"><CheckCircle className="w-4 h-4 text-emerald-500" /> Basic reporting</li>
-                    </ul>
-                    <button className="w-full py-2.5 border border-slate-300 rounded-lg font-semibold text-slate-900 hover:bg-slate-100 transition">Get Started</button>
-                  </div>
 
-                  <div className="glass-panel rounded-2xl p-8 space-y-6 border-2 border-blue-500 shadow-lg scale-105">
-                    <div>
-                      <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full mb-3">POPULAR</span>
-                      <h3 className="heading-3">Professional</h3>
-                      <p className="text-3xl font-black text-slate-900 mt-2">₹14,999<span className="text-sm text-slate-600 font-normal">/mo</span></p>
-                    </div>
-                    <ul className="space-y-3 text-sm text-slate-700">
-                      <li className="flex-center-gap"><CheckCircle className="w-4 h-4 text-emerald-500" /> 500-1000 students</li>
-                      <li className="flex-center-gap"><CheckCircle className="w-4 h-4 text-emerald-500" /> Full parent portal</li>
-                      <li className="flex-center-gap"><CheckCircle className="w-4 h-4 text-emerald-500" /> Fee management</li>
-                      <li className="flex-center-gap"><CheckCircle className="w-4 h-4 text-emerald-500" /> Priority support</li>
-                    </ul>
-                    <button className="w-full py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">Try Free</button>
-                  </div>
+                    <form onSubmit={handleSuperAdminLogin} className="space-y-4.5">
+                      <div className="space-y-1.5">
+                        <label htmlFor="super-user-input" className="form-label">Principal Email address</label>
+                        <input
+                          id="super-user-input"
+                          type="email"
+                          value={loginUsername}
+                          onChange={(e) => setLoginUsername(e.target.value)}
+                          placeholder="admin@system.local"
+                          className="form-input"
+                          required
+                        />
+                      </div>
 
-                  <div className="glass-panel rounded-2xl p-8 space-y-6 border border-slate-200 hover:border-blue-300 transition">
-                    <div>
-                      <h3 className="heading-3">Enterprise</h3>
-                      <p className="text-3xl font-black text-slate-900 mt-2">Custom</p>
-                    </div>
-                    <ul className="space-y-3 text-sm text-slate-700">
-                      <li className="flex-center-gap"><CheckCircle className="w-4 h-4 text-emerald-500" /> Multi-campus support</li>
-                      <li className="flex-center-gap"><CheckCircle className="w-4 h-4 text-emerald-500" /> Custom integrations</li>
-                      <li className="flex-center-gap"><CheckCircle className="w-4 h-4 text-emerald-500" /> Dedicated support</li>
-                    </ul>
-                    <button className="w-full py-2.5 border border-slate-300 rounded-lg font-semibold text-slate-900 hover:bg-slate-100 transition">Contact Sales</button>
+                      <div className="space-y-1.5">
+                        <label htmlFor="super-pass-input" className="form-label">Root Password</label>
+                        <input
+                          id="super-pass-input"
+                          type="password"
+                          value={loginPassword}
+                          onChange={(e) => setLoginPassword(e.target.value)}
+                          placeholder="••••••••"
+                          className="form-input"
+                          required
+                        />
+                      </div>
+
+                      {loginError && (
+                        <p className="text-xs text-rose-700 bg-rose-50 border border-rose-100 p-3.5 rounded-xl font-medium leading-relaxed">
+                          ⚠️ {loginError}
+                        </p>
+                      )}
+
+                      <button
+                        type="submit"
+                        className="btn-primary w-full py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <Lock className="icon-sm" />
+                        <span>Sign In as Admin</span>
+                      </button>
+                    </form>
                   </div>
-                </div>
+                )}
+
               </div>
-            </section>
 
-            {/* CONTACT/SUPPORT SECTION */}
-            <section id="contact" className="py-20 px-4 bg-white">
-              <div className="max-w-4xl mx-auto text-center space-y-8">
-                <div className="space-y-4">
-                  <h2 className="heading-1">Get Support</h2>
-                  <p className="text-lg text-slate-600">We're here to help you succeed</p>
-                </div>
-
-                <div className="grid md:grid-cols-3 gap-6">
-                  <a href="mailto:support@aviralvidhya.com" className="glass-panel rounded-xl p-6 border border-slate-200 hover:border-blue-300 transition space-y-3">
-                    <div className="text-2xl">📧</div>
-                    <h3 className="font-bold text-slate-900">Email Support</h3>
-                    <p className="text-body">support@aviralvidhya.com</p>
-                  </a>
-                  <a href="tel:+919876543210" className="glass-panel rounded-xl p-6 border border-slate-200 hover:border-blue-300 transition space-y-3">
-                    <div className="text-2xl">📞</div>
-                    <h3 className="font-bold text-slate-900">Phone Support</h3>
-                    <p className="text-body">+91 9876-543-210</p>
-                  </a>
-                  <a href="#" className="glass-panel rounded-xl p-6 border border-slate-200 hover:border-blue-300 transition space-y-3">
-                    <div className="text-2xl">💬</div>
-                    <h3 className="font-bold text-slate-900">Live Chat</h3>
-                    <p className="text-body">Chat with us now</p>
-                  </a>
-                </div>
+              {/* Portal isolation warning label */}
+              <div className="text-center text-[10px] text-slate-400 font-mono">
+                Isolated database connections active.
               </div>
-            </section>
+            </div>
           </div>
         ) : (
-          <div id="management-view-container" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-6">
+          /* Authenticated Dashboard Core Stage */
+          <div id="management-view-container" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 flex-1 flex flex-col">
             
-            {/* Dynamic Header */}
+            {/* Elegant Header Card replacing traditional Indian Motif banner patterns */}
             <IndianMotifHeader 
               title="AviralVidhya School Management" 
-              subtitle="Modern, centralized school management for multi-tenant organizations."
+              subtitle="Centralized school enterprise management for modern multi-tenant environments."
             />
 
-            {/* Error Notification */}
+            {/* Sync Error Alert Banner */}
             {syncError && (
-              <div id="firestore-error-reporter" className="bg-rose-50 border-2 border-rose-200 text-rose-900 rounded-2xl p-4 text-xs space-y-2 animate-bounce-short">
+              <div id="firestore-error-reporter" className="bg-rose-50 border border-rose-250 text-rose-955 rounded-2xl p-4.5 text-xs space-y-2 animate-bounce-short">
                 <div className="flex items-center gap-2 font-bold uppercase text-rose-800">
                   <AlertTriangle className="w-5 h-5 text-rose-600" />
-                  <span>System Warning</span>
+                  <span>System Synchronization Warning</span>
                 </div>
-                <p>A recent state synchronization write was refused by security rules. Secure system details shown below:</p>
-                <pre className="p-3 bg-rose-100 text-rose-900 rounded-xl font-mono text-[10.5px] overflow-x-auto whitespace-pre-wrap leading-relaxed">
+                <p>A recent state synchronization write operation was refused. Security context and trace details:</p>
+                <pre className="p-3 bg-rose-100/60 border border-rose-200 text-rose-950 rounded-xl font-mono text-[10.5px] overflow-x-auto whitespace-pre-wrap leading-relaxed">
                   {syncError}
                 </pre>
                 <button
                   onClick={() => setSyncError(null)}
-                  className="text-[11px] font-extrabold text-blue-700 underline hover:text-blue-900 cursor-pointer"
+                  className="text-xs font-bold text-rose-700 underline hover:text-rose-900 cursor-pointer"
                 >
                   Acknowledge and Resolve
                 </button>
               </div>
             )}
 
-            {/* SYSTEM AUTHENTICATION SWITCHER (ROLE CONTROL PANEL) */}
+            {/* SYSTEM AUTHENTICATION SWITCHER (ROLE SEGMENTED TAB HUB) */}
             {loginRole === 'super_admin' && (
-              <div id="system-auth-hub" className="dashboard-card">
+              <div id="system-auth-hub" className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-4">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                   <div>
-                    <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-1.5">
-                      <Layers className="w-4.5 h-4.5 text-blue-600" />
-                      <span>Switch Active Workspace Portal View</span>
+                    <h2 className="text-xs font-bold text-slate-700 uppercase tracking-widest flex items-center gap-1.5">
+                      <Layers className="w-4 h-4 text-blue-600" />
+                      <span>Workspace Portal Impersonation</span>
                     </h2>
-                    <p className="text-xs text-slate-500">Fast-switch tenant workflows in this authenticated session</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Toggle active preview context roles dynamically</p>
                   </div>
 
-                  {/* School isolation select element - displays only if not Super Admin */}
+                  {/* Multi-Tenant School Context Dropdown Filter (Available to Impersonating Admins) */}
                   {activeRole !== 'super_admin' && (
-                    <div className="flex items-center gap-2 bg-slate-50 border border-slate-300 px-3 py-1.5 rounded-lg text-xs w-full sm:w-fit">
-                      <label htmlFor="school-context-dropdown" className="font-bold text-slate-600 uppercase tracking-wider">Active School:</label>
+                    <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs w-full sm:w-fit shadow-subtle">
+                      <label htmlFor="school-context-dropdown" className="font-semibold text-slate-500 uppercase tracking-wider text-[10px]">Active Tenant:</label>
                       <select
                         id="school-context-dropdown"
                         value={activeSchoolId}
                         onChange={(e) => setActiveSchoolId(e.target.value)}
-                        className="bg-transparent text-slate-900 font-extrabold focus:outline-none cursor-pointer"
+                        className="bg-transparent text-slate-900 font-bold focus:outline-none cursor-pointer text-xs"
                       >
                         {schools.map(s => (
                           <option key={s.id} value={s.id}>{s.name}</option>
@@ -925,90 +873,90 @@ export default function App() {
                   )}
                 </div>
 
-                {/* Role selection tab button bar */}
+                {/* Styled Segmented Tab Layout Buttons */}
                 <div id="role-bar" className="grid grid-cols-1 sm:grid-cols-3 gap-3" role="tablist" aria-label="Portal Navigation Actions">
                   
-                  {/* Super Admin Tab */}
+                  {/* Switch to Super Admin Portal View */}
                   <button
                     onClick={() => setActiveRole('super_admin')}
-                    className={`flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
+                    className={`flex items-center justify-between p-3.5 rounded-xl border text-left transition-all duration-200 cursor-pointer ${
                       activeRole === 'super_admin' 
-                        ? 'bg-blue-50 border-blue-300 text-slate-900 shadow-md' 
-                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                        ? 'bg-blue-50/50 border-blue-300 text-blue-900 shadow-sm' 
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
                     }`}
                     role="tab"
                     aria-selected={activeRole === 'super_admin'}
                   >
-                    <div className="flex-center-gap-lg">
-                      <div className={`p-2.5 rounded-lg ${activeRole === 'super_admin' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
-                        <Shield className="icon-md" />
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${activeRole === 'super_admin' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-650'}`}>
+                        <Shield className="icon-sm" />
                       </div>
                       <div>
                         <p className="text-xs font-bold uppercase tracking-wider">Super Admin View</p>
-                        <p className="text-[11px] opacity-80 mt-0.5">Feature & tenant allocation</p>
+                        <p className="text-[10px] opacity-75 mt-0.5">Global Tenant allocation</p>
                       </div>
                     </div>
-                    <ArrowRight className="w-4 h-4 opacity-70" />
+                    <ArrowRight className="w-3.5 h-3.5 opacity-60" />
                   </button>
 
-                  {/* School Admin Tab */}
+                  {/* Switch to School Admin Portal View */}
                   <button
                     onClick={() => setActiveRole('school_admin')}
-                    className={`flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
+                    className={`flex items-center justify-between p-3.5 rounded-xl border text-left transition-all duration-200 cursor-pointer ${
                       activeRole === 'school_admin' 
-                        ? 'bg-orange-50 border-orange-300 text-slate-900 shadow-md' 
-                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                        ? 'bg-orange-50/50 border-orange-300 text-orange-950 shadow-sm' 
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
                     }`}
                     role="tab"
                     aria-selected={activeRole === 'school_admin'}
                   >
-                    <div className="flex-center-gap-lg">
-                      <div className={`p-2.5 rounded-lg ${activeRole === 'school_admin' ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 text-slate-600'}`}>
-                        <GraduationCap className="icon-md" />
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${activeRole === 'school_admin' ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 text-slate-650'}`}>
+                        <GraduationCap className="icon-sm" />
                       </div>
                       <div>
                         <p className="text-xs font-bold uppercase tracking-wider">School Admin View</p>
-                        <p className="text-[11px] opacity-80 mt-0.5">Memos, enrollments & staff</p>
+                        <p className="text-[10px] opacity-75 mt-0.5">Faculty & Enrollments</p>
                       </div>
                     </div>
-                    <ArrowRight className="w-4 h-4 opacity-70" />
+                    <ArrowRight className="w-3.5 h-3.5 opacity-60" />
                   </button>
 
-                  {/* Parent Portal Tab */}
+                  {/* Switch to Parent Portal View */}
                   <button
                     onClick={() => setActiveRole('parent')}
-                    className={`flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
+                    className={`flex items-center justify-between p-3.5 rounded-xl border text-left transition-all duration-200 cursor-pointer ${
                       activeRole === 'parent' 
-                        ? 'bg-rose-50 border-rose-300 text-slate-900 shadow-md' 
-                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                        ? 'bg-rose-50/50 border-rose-350 text-rose-950 shadow-sm' 
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
                     }`}
                     role="tab"
                     aria-selected={activeRole === 'parent'}
                   >
-                    <div className="flex-center-gap-lg">
-                      <div className={`p-2.5 rounded-lg ${activeRole === 'parent' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'}`}>
-                        <Users className="icon-md" />
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${activeRole === 'parent' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-650'}`}>
+                        <Users className="icon-sm" />
                       </div>
                       <div>
                         <p className="text-xs font-bold uppercase tracking-wider">Parent Portal View</p>
-                        <p className="text-[11px] opacity-80 mt-0.5">Homework, fees & notices</p>
+                        <p className="text-[10px] opacity-75 mt-0.5">Homework, Fees & Memos</p>
                       </div>
                     </div>
-                    <ArrowRight className="w-4 h-4 opacity-70" />
+                    <ArrowRight className="w-3.5 h-3.5 opacity-60" />
                   </button>
 
                 </div>
               </div>
             )}
 
-            {/* LOADING INDICATOR */}
+            {/* DASHBOARD CONTAINER INNER ROUTER */}
             {isLoading ? (
-              <div id="management-loader" className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-3">
-                <RefreshCw className="w-8 h-8 text-blue-700 mx-auto animate-spin" />
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Verifying database synchronization, please wait...</p>
+              <div id="management-loader" className="bg-white border border-slate-200/80 rounded-2xl p-16 text-center space-y-3 shadow-sm flex-1 flex flex-col justify-center items-center">
+                <RefreshCw className="w-7 h-7 text-blue-600 animate-spin" />
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Checking isolation locks...</p>
               </div>
             ) : (
-              <main id="main-content-canvas">
+              <main id="main-content-canvas" className="flex-1 flex flex-col">
                 {activeRole === 'super_admin' && (
                   <SuperAdminDashboard 
                     schools={schools}
@@ -1063,54 +1011,6 @@ export default function App() {
         )}
       </main>
 
-      {/* FOOTER */}
-      {!isAuthenticated && (
-        <footer className="bg-slate-900 text-slate-200 py-12 px-4">
-          <div className="max-w-6xl mx-auto grid md:grid-cols-4 gap-8 mb-8">
-            <div className="space-y-4">
-              <h3 className="font-black text-white text-lg">AviralVidhya</h3>
-              <p className="text-sm text-slate-400">Modern ERP platform for schools across India.</p>
-              <div className="flex gap-3">
-                <a href="#" className="text-slate-400 hover:text-white">Twitter</a>
-                <a href="#" className="text-slate-400 hover:text-white">LinkedIn</a>
-                <a href="#" className="text-slate-400 hover:text-white">Facebook</a>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-bold text-white mb-4">Product</h4>
-              <ul className="space-y-2 text-sm text-slate-400">
-                <li><a href="#features" className="hover:text-white">Features</a></li>
-                <li><a href="#pricing" className="hover:text-white">Pricing</a></li>
-                <li><a href="#contact" className="hover:text-white">Support</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-bold text-white mb-4">Company</h4>
-              <ul className="space-y-2 text-sm text-slate-400">
-                <li><a href="#" className="hover:text-white">About</a></li>
-                <li><a href="#" className="hover:text-white">Blog</a></li>
-                <li><a href="#" className="hover:text-white">Careers</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-bold text-white mb-4">Legal</h4>
-              <ul className="space-y-2 text-sm text-slate-400">
-                <li><a href="#" className="hover:text-white">Privacy</a></li>
-                <li><a href="#" className="hover:text-white">Terms</a></li>
-                <li><a href="#" className="hover:text-white">Security</a></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="border-t border-slate-700 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-slate-400">
-            <p>&copy; 2024 AviralVidhya. All rights reserved.</p>
-            <p>Made with ❤️ for Indian schools</p>
-          </div>
-        </footer>
-      )}
     </div>
   );
 }

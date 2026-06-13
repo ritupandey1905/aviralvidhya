@@ -132,19 +132,19 @@ export default function TeacherDashboard({
   const activeTheme = themeColors[school.primaryColor] || themeColors.indigo;
 
   return (
-    <div id="teacher-dashboard-container" className="space-y-8 animate-fade-in glass-panel border border-slate-200 bg-white shadow-sm p-6">
+    <div id="teacher-dashboard-container" className="space-y-8 animate-fade-in glass-panel border border-slate-200 bg-white shadow-sm p-6 rounded-2xl">
       
       {/* Teacher Profile Header card */}
-      <div id="teacher-profile-banner" className="bg-slate-50 border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div id="teacher-profile-banner" className="bg-slate-50/50 border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-4.5">
-          <div className={`p-4 rounded-2xl ${activeTheme.bg} ${activeTheme.text}`}>
+          <div className={`p-4 rounded-xl ${activeTheme.bg} ${activeTheme.text} shadow-sm border ${activeTheme.border}`}>
             <User className="w-8 h-8" />
           </div>
-          <div>
-            <span className="text-[10px] uppercase font-black tracking-widest text-slate-400">Authenticated Staff Faculty</span>
-            <h2 className="text-xl sm:text-2xl font-black text-white">Welcome, Professor {teacher.name}</h2>
-            <p className="text-xs text-slate-400 mt-1 flex flex-wrap items-center gap-2">
-              <span className="font-bold text-slate-700">Subject Specialty:</span> 
+          <div className="text-left">
+            <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Authenticated Staff Faculty</span>
+            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">Welcome, Professor {teacher.name}</h2>
+            <p className="text-xs text-slate-500 mt-1.5 flex flex-wrap items-center gap-2">
+              <span className="font-bold text-slate-600">Subject Specialty:</span> 
               <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${activeTheme.bg} ${activeTheme.text}`}>
                 {teacher.subject}
               </span>
@@ -154,13 +154,13 @@ export default function TeacherDashboard({
           </div>
         </div>
 
-        <div className="bg-slate-50 border border-slate-150 rounded-2xl p-4 text-xs font-mono text-slate-600 space-y-1.5 w-full md:w-auto">
+        <div className="bg-white border border-slate-200 rounded-xl p-4 text-xs font-mono text-slate-650 space-y-2 w-full md:w-auto text-left shadow-xs">
           <p className="flex justify-between md:justify-start gap-4">
-            <span className="text-slate-400 uppercase tracking-widest text-[9.5px] font-bold">Email Username:</span>
+            <span className="text-slate-400 uppercase tracking-wider text-[9.5px] font-bold">Email Username:</span>
             <strong className="text-slate-800 font-semibold">{teacher.email}</strong>
           </p>
           <p className="flex justify-between md:justify-start gap-4">
-            <span className="text-slate-400 uppercase tracking-widest text-[9.5px] font-bold">Tenant Isolation ID:</span>
+            <span className="text-slate-400 uppercase tracking-wider text-[9.5px] font-bold">Tenant Isolation ID:</span>
             <strong className="text-slate-800 font-semibold">{school.id}</strong>
           </p>
         </div>
@@ -168,14 +168,14 @@ export default function TeacherDashboard({
 
       {/* Alerts */}
       {successMsg && (
-        <div className="bg-emerald-50 border border-emerald-150 p-4 rounded-xl text-emerald-800 font-semibold text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600" />
+        <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl text-emerald-800 font-semibold text-xs flex items-center gap-2 animate-fade-in shadow-xs">
+          <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600 shrink-0" />
           <span>{successMsg}</span>
         </div>
       )}
       {errorMsg && (
-        <div className="bg-rose-50 border border-rose-150 p-4 rounded-xl text-rose-800 font-semibold text-xs flex items-center gap-2">
-          <AlertCircle className="w-4.5 h-4.5 text-rose-600" />
+        <div className="bg-rose-50 border border-rose-200 p-4 rounded-xl text-rose-800 font-semibold text-xs flex items-center gap-2 animate-fade-in shadow-xs">
+          <AlertCircle className="w-4.5 h-4.5 text-rose-600 shrink-0" />
           <span>{errorMsg}</span>
         </div>
       )}
@@ -186,20 +186,58 @@ export default function TeacherDashboard({
         {/* Left Column: Post homework & bullet bulletin board notices */}
         <div id="teacher-forms-col" className="space-y-6 lg:col-span-1">
           
+          {/* Today's Schedule Card */}
+          <div id="teacher-schedule-card" className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+            <div className={`flex items-center gap-2 pb-2 border-b ${activeTheme.border} ${activeTheme.text}`}>
+              <Clock className="icon-md" />
+              <h3 className="font-extrabold text-xs uppercase tracking-wider">Today's Class Schedule</h3>
+            </div>
+            
+            <div className="relative border-l border-slate-150 pl-4.5 ml-2 ml-2.5 space-y-4 text-left">
+              <div className="relative">
+                <div className="absolute -left-[23.5px] top-1 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-50"></div>
+                <span className="text-[10px] text-emerald-600 font-bold font-mono block uppercase">08:30 AM - 09:15 AM</span>
+                <span className="text-xs font-bold text-slate-800 block mt-0.5">Period 1: Class IX-A ({teacher.subject})</span>
+                <span className="text-[9.5px] text-slate-400 block font-semibold">Completed</span>
+              </div>
+              
+              <div className="relative">
+                <div className="absolute -left-[23.5px] top-1 w-2.5 h-2.5 rounded-full bg-blue-500 ring-4 ring-blue-50 animate-pulse"></div>
+                <span className="text-[10px] text-blue-600 font-bold font-mono block uppercase">09:30 AM - 10:15 AM</span>
+                <span className="text-xs font-bold text-slate-900 block mt-0.5">Period 2: Class X-B ({teacher.subject})</span>
+                <span className="text-[9.5px] text-indigo-700 bg-indigo-50 border border-indigo-100 px-1.5 py-0.2 rounded font-bold inline-block mt-0.5">In Session Now</span>
+              </div>
+
+              <div className="relative">
+                <div className="absolute -left-[23.5px] top-1 w-2.5 h-2.5 rounded-full bg-slate-300 ring-4 ring-slate-100"></div>
+                <span className="text-[10px] text-slate-500 font-bold font-mono block uppercase">11:00 AM - 11:45 AM</span>
+                <span className="text-xs font-bold text-slate-700 block mt-0.5">Period 3: Class XI-A (Lab Practical)</span>
+                <span className="text-[9.5px] text-slate-400 block font-semibold">Next Up</span>
+              </div>
+
+              <div className="relative">
+                <div className="absolute -left-[23.5px] top-1 w-2.5 h-2.5 rounded-full bg-slate-300 ring-4 ring-slate-100"></div>
+                <span className="text-[10px] text-slate-500 font-bold font-mono block uppercase">12:00 PM - 12:45 PM</span>
+                <span className="text-xs font-bold text-slate-700 block mt-0.5">Period 4: Class XII-A ({teacher.subject})</span>
+                <span className="text-[9.5px] text-slate-400 block font-semibold">Scheduled</span>
+              </div>
+            </div>
+          </div>
+
           {/* Post HomeWork assignment card */}
-          <div id="teacher-post-homework-card" className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+          <div id="teacher-post-homework-card" className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4 text-left">
             <div className={`flex items-center gap-2 pb-2 border-b ${activeTheme.border} ${activeTheme.text}`}>
               <BookOpen className="icon-md" />
-              <h3 className="font-extrabold text-sm uppercase tracking-wider">Assign Class Homework</h3>
+              <h3 className="font-extrabold text-xs uppercase tracking-wider">Assign Class Homework</h3>
             </div>
 
             <form onSubmit={handlePostHomework} className="space-y-4">
               <div>
-                <label className="block text-[10.5px] font-bold text-slate-500 uppercase tracking-wider mb-1">Target Student Class</label>
+                <label className="form-label text-slate-500">Target Student Class</label>
                 <select
                   value={homeworkClass}
                   onChange={(e) => setHomeworkClass(e.target.value)}
-                  className="w-full text-xs bg-slate-50 border rounded-lg px-3 py-2 text-slate-800 font-semibold"
+                  className="form-input text-xs"
                 >
                   <option value="Class VIII">Class VIII</option>
                   <option value="Class IX">Class IX</option>
@@ -210,31 +248,31 @@ export default function TeacherDashboard({
               </div>
 
               <div>
-                <label className="block text-[10.5px] font-bold text-slate-500 uppercase tracking-wider mb-1">Assignment Title (English) <span className="text-rose-500">*</span></label>
+                <label className="form-label text-slate-500">Assignment Title (English) <span className="text-rose-500">*</span></label>
                 <input
                   type="text"
                   value={homeworkTitle}
                   onChange={(e) => setHomeworkTitle(e.target.value)}
                   placeholder="e.g. Solve Trigonometry Exercise 5"
-                  className="w-full text-xs bg-slate-50 border rounded-lg px-3 py-2 text-slate-900 focus:bg-white"
+                  className="form-input text-xs"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-[10.5px] font-bold text-slate-500 uppercase tracking-wider mb-1">Due Date <span className="text-rose-500">*</span></label>
+                <label className="form-label text-slate-500">Due Date <span className="text-rose-500">*</span></label>
                 <input
                   type="date"
                   value={homeworkDueDate}
                   onChange={(e) => setHomeworkDueDate(e.target.value)}
-                  className="w-full text-xs bg-slate-50 border rounded-lg px-3 py-2 text-slate-900"
+                  className="form-input text-xs font-mono"
                   required
                 />
               </div>
 
               <button
                 type="submit"
-                className={`w-full py-2.5 rounded-lg text-white font-extrabold text-[11px] uppercase tracking-widest transition-all cursor-pointer ${activeTheme.primary}`}
+                className={`w-full py-2.5 rounded-xl text-white font-extrabold text-[11px] uppercase tracking-widest transition-all cursor-pointer shadow-sm hover:shadow hover:translate-y-[-0.5px] active:translate-y-0 ${activeTheme.primary}`}
               >
                 Publish New Assignment
               </button>
@@ -242,31 +280,31 @@ export default function TeacherDashboard({
           </div>
 
           {/* Quick Notice board announcer card */}
-          <div id="teacher-post-notice-card" className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+          <div id="teacher-post-notice-card" className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4 text-left">
             <div className={`flex items-center gap-2 pb-2 border-b ${activeTheme.border} ${activeTheme.text}`}>
               <PlusCircle className="icon-md" />
-              <h3 className="font-extrabold text-sm uppercase tracking-wider">Broadcast School Circular</h3>
+              <h3 className="font-extrabold text-xs uppercase tracking-wider">Broadcast School Circular</h3>
             </div>
 
             <form onSubmit={handlePostNotice} className="space-y-4">
               <div>
-                <label className="block text-[10.5px] font-bold text-slate-500 uppercase tracking-wider mb-1">Circular Title</label>
+                <label className="form-label text-slate-500">Circular Title</label>
                 <input
                   type="text"
                   value={noticeTitle}
                   onChange={(e) => setNoticeTitle(e.target.value)}
                   placeholder="e.g. Science Fair Submission Date"
-                  className="w-full text-xs bg-slate-50 border rounded-lg px-3 py-2 text-slate-900 focus:bg-white"
+                  className="form-input text-xs"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-[10.5px] font-bold text-slate-500 uppercase tracking-wider mb-1">Notice Category</label>
+                <label className="form-label text-slate-500">Notice Category</label>
                 <select
                   value={noticeCategory}
                   onChange={(e) => setNoticeCategory(e.target.value as any)}
-                  className="w-full text-xs bg-slate-50 border rounded-lg px-3 py-2 text-slate-800"
+                  className="form-input text-xs"
                 >
                   <option value="academic">📚 Academic Class Update</option>
                   <option value="holiday">🎉 Holiday Circular</option>
@@ -276,20 +314,20 @@ export default function TeacherDashboard({
               </div>
 
               <div>
-                <label className="block text-[10.5px] font-bold text-slate-500 uppercase tracking-wider mb-1">Content Details</label>
+                <label className="form-label text-slate-500">Content Details</label>
                 <textarea
                   value={noticeContent}
                   onChange={(e) => setNoticeContent(e.target.value)}
                   placeholder="Describe notice content circular here..."
                   rows={3}
-                  className="w-full text-xs bg-slate-50 border rounded-lg px-3 py-2 text-slate-900 focus:bg-white"
+                  className="form-input text-xs"
                   required
                 />
               </div>
 
               <button
                 type="submit"
-                className={`w-full py-2.5 rounded-lg text-white font-extrabold text-[11px] uppercase tracking-widest transition-all cursor-pointer ${activeTheme.primary}`}
+                className={`w-full py-2.5 rounded-xl text-white font-extrabold text-[11px] uppercase tracking-widest transition-all cursor-pointer shadow-sm hover:shadow hover:translate-y-[-0.5px] active:translate-y-0 ${activeTheme.primary}`}
               >
                 Post Notice circular
               </button>
@@ -302,59 +340,75 @@ export default function TeacherDashboard({
         <div id="teacher-main-col" className="lg:col-span-2 space-y-6">
           
           {/* Section: Manage Attendance & Student Profiles */}
-          <div id="teacher-students-desk" className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+          <div id="teacher-students-desk" className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden text-left">
             <div className="p-5 border-b border-slate-100 bg-slate-50/70 flex justify-between items-center">
               <div>
                 <h3 className="font-extrabold text-slate-900 text-sm tracking-wide uppercase flex items-center gap-2">
                   <Users className="w-4.5 h-4.5 text-slate-500" />
-                  <span>Interactive Student Attendance Management desk</span>
+                  <span>Student Attendance Management Desk</span>
                 </h3>
-                <p className="text-xs text-slate-500">Record fast check-ins for students isolate-tenancy matching this school.</p>
+                <p className="text-xs text-slate-500">Record check-ins for students matching this school tenant.</p>
               </div>
               <span className="text-xs font-mono font-black bg-slate-200 text-slate-700 px-3 py-1 rounded-lg">
                 {schoolStudents.length} Students
               </span>
             </div>
 
-            <div className="divide-y divide-slate-100 max-h-[460px] overflow-y-auto">
+            <div className="divide-y divide-slate-100 max-h-[520px] overflow-y-auto">
               {schoolStudents.length === 0 ? (
                 <div className="p-8 text-center text-slate-400 text-xs">
                   No students pre-enrolled in this school tenant domain yet. Use School Admin view to add students.
                 </div>
               ) : (
-                schoolStudents.map((student) => (
-                  <div key={student.id} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:bg-slate-100 transition-colors">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <strong className="text-sm font-bold text-slate-900">{student.name}</strong>
-                        <span className="text-[10px] font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded border">
-                          Roll: {student.rollNo}
-                        </span>
-                        <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">
-                          {student.class} - {student.section}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-400">
-                        Attendance: <span className="text-slate-700 font-bold">{student.attendance.presentDays}/{student.attendance.totalDays} Days</span> ({Math.round((student.attendance.presentDays / (student.attendance.totalDays || 1)) * 100)}% attendance rate)
-                      </p>
-                    </div>
+                schoolStudents.map((student) => {
+                  const currentTodayStr = new Date().toISOString().split('T')[0];
+                  const todayStatus = student.attendance.history.find(h => h.date === currentTodayStr)?.status;
+                  
+                  const isPresentSelected = todayStatus === 'present';
+                  const isAbsentSelected = todayStatus === 'absent';
 
-                    <div className="flex items-center gap-1.5 self-end sm:self-center">
-                      <button
-                        onClick={() => handleAttendanceToggle(student.id, 'present')}
-                        className="text-[10.5px] font-extrabold px-3 py-1.5 rounded-lg border bg-emerald-50 text-emerald-700 border-emerald-250 hover:bg-emerald-100 transition-all cursor-pointer"
-                      >
-                        ✓ Mark Present
-                      </button>
-                      <button
-                        onClick={() => handleAttendanceToggle(student.id, 'absent')}
-                        className="text-[10.5px] font-extrabold px-3 py-1.5 rounded-lg border bg-rose-50 text-rose-700 border-rose-250 hover:bg-rose-100 transition-all cursor-pointer"
-                      >
-                        ✗ Mark Absent
-                      </button>
+                  return (
+                    <div key={student.id} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:bg-slate-50/50 transition-colors">
+                      <div className="space-y-1 text-left">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <strong className="text-sm font-bold text-slate-900">{student.name}</strong>
+                          <span className="text-[10px] font-mono bg-slate-150 border border-slate-200 text-slate-600 px-2 py-0.5 rounded">
+                            Roll: {student.rollNo}
+                          </span>
+                          <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded">
+                            {student.class} - {student.section}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500">
+                          Attendance: <span className="text-slate-800 font-bold">{student.attendance.presentDays}/{student.attendance.totalDays} Days</span> ({Math.round((student.attendance.presentDays / (student.attendance.totalDays || 1)) * 100)}% attendance rate)
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end sm:self-center">
+                        <button
+                          onClick={() => handleAttendanceToggle(student.id, 'present')}
+                          className={`text-[10.5px] font-extrabold px-3.5 py-1.5 rounded-lg border transition-all cursor-pointer ${
+                            isPresentSelected
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                              : 'bg-emerald-50/40 text-emerald-700 border-emerald-105 hover:bg-emerald-100/70 hover:border-emerald-200'
+                          }`}
+                        >
+                          ✓ Present
+                        </button>
+                        <button
+                          onClick={() => handleAttendanceToggle(student.id, 'absent')}
+                          className={`text-[10.5px] font-extrabold px-3.5 py-1.5 rounded-lg border transition-all cursor-pointer ${
+                            isAbsentSelected
+                              ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                              : 'bg-rose-50/40 text-rose-700 border-rose-105 hover:bg-rose-100/70 hover:border-rose-200'
+                          }`}
+                        >
+                          ✗ Absent
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>

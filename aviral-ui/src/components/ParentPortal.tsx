@@ -20,7 +20,8 @@ import {
   CheckCircle,
   XCircle,
   Users,
-  GraduationCap
+  GraduationCap,
+  X
 } from 'lucide-react';
 
 interface ParentPortalProps {
@@ -70,6 +71,15 @@ export default function ParentPortal({
   const [paymentError, setPaymentError] = useState('');
   const [paymentSuccess, setPaymentSuccess] = useState('');
 
+  // Checkout modal states
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'upi' | 'netbanking'>('card');
+  const [cardNum, setCardNum] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [upiId, setUpiId] = useState('');
+  const [selectedBank, setSelectedBank] = useState('sbi');
+
   // School metadata
   const currentSchool = schools.find(sch => sch.id === schoolId);
 
@@ -102,8 +112,8 @@ export default function ParentPortal({
     setPaymentError('');
   }, [activeStudent]);
 
-  // Handle Pay Now with dynamic status logic
-  const handlePayNow = async () => {
+  // Validate and open checkout modal
+  const handleOpenCheckout = () => {
     if (!activeStudent) return;
     const remainingDue = activeStudent.fees.totalDue - activeStudent.fees.paidAmount;
     const requestedAmount = Number(paymentAmount);
@@ -119,9 +129,48 @@ export default function ParentPortal({
 
     setPaymentError('');
     setPaymentSuccess('');
+    setIsCheckoutOpen(true);
+  };
+
+  // Handle Pay Now with dynamic status logic
+  const handlePayNow = async () => {
+    if (!activeStudent) return;
+    const remainingDue = activeStudent.fees.totalDue - activeStudent.fees.paidAmount;
+    const requestedAmount = Number(paymentAmount);
+
+    if (Number.isNaN(requestedAmount) || requestedAmount <= 0) {
+      setPaymentError('Enter a valid payment amount greater than zero. / शून्य से अधिक भुगतान राशि दर्ज करें।');
+      return;
+    }
+    if (requestedAmount > remainingDue) {
+      setPaymentError(`Amount cannot exceed remaining due ₹${remainingDue}. / शेष बकाया राशि से अधिक राशि नहीं हो सकती।`);
+      return;
+    }
+
+    // Modal validations
+    if (paymentMethod === 'card') {
+      if (!cardNum.trim() || !cardExpiry.trim() || !cardCvv.trim()) {
+        setPaymentError('Please fill all card fields. / कृपया कार्ड के सभी फ़ील्ड भरें।');
+        return;
+      }
+    } else if (paymentMethod === 'upi') {
+      if (!upiId.trim() || !upiId.includes('@')) {
+        setPaymentError('Please enter a valid UPI ID (e.g. user@okhdfc). / कृपया वैध UPI आईडी दर्ज करें।');
+        return;
+      }
+    }
+
+    setPaymentError('');
+    setPaymentSuccess('');
+    setIsCheckoutOpen(false);
     try {
       await onFeePayment(activeStudent.id, requestedAmount);
       setPaymentSuccess("Payment successfully updated in campus ledger! / भुगतान सफलतापूर्वक कैम्पस खाता बही में अपडेट किया गया!");
+      // Reset input fields
+      setCardNum('');
+      setCardExpiry('');
+      setCardCvv('');
+      setUpiId('');
       setTimeout(() => {
         setPaymentSuccess('');
       }, 6000);
@@ -215,32 +264,32 @@ export default function ParentPortal({
     <div id="parent-portal-root" className="space-y-6 animate-fade-in text-slate-900 font-sans glass-panel border border-slate-200 bg-white shadow-sm p-6">
       
       {/* 20-YEARS ARCHITECT SIGNATURE BIO CARD: Wards Selectors */}
-      <div id="language-and-child-selector-card" className="glass-panel border border-slate-200 bg-white text-slate-900 rounded-3xl p-6 shadow-sm space-y-5">
+      <div id="language-and-child-selector-card" className="border border-slate-200 bg-slate-50/50 text-slate-900 rounded-2xl p-6 shadow-sm space-y-5">
         
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1 text-left">
-            <div className="inline-flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-400/20 px-3 py-1 rounded-full text-amber-300 text-[10.5px] font-black tracking-wider uppercase">
-              <Sparkles className="w-3.5 h-3.5" />
+            <div className="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-105 px-3 py-1 rounded-full text-[10.5px] font-bold uppercase tracking-wider text-indigo-750">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
               <span>Campus Care Active Parent Desk / पेरेंट डेस्क सक्रिय</span>
             </div>
-            <h2 className="text-xl font-black mt-2 tracking-tight text-white">
-              Academic Ward Session / <span className="bg-gradient-to-r from-amber-300 to-orange-400 bg-clip-text text-transparent">शैक्षणिक सत्र विवरण</span>
+            <h2 className="text-xl font-extrabold mt-2 tracking-tight text-slate-900">
+              Academic Ward Session / <span className="bg-gradient-to-r from-indigo-600 to-slate-900 bg-clip-text text-transparent">शैक्षणिक सत्र विवरण</span>
             </h2>
-            <p className="text-xs text-slate-300">
+            <p className="text-xs text-slate-500 font-medium">
               Access fee statements, registers, notices, and leave cards instantly. / शुल्क विवरण, उपस्थिति, परिपत्र और छुट्टी के लिए तुरंत पहुँच प्राप्त करें।
             </p>
           </div>
 
-          <div className="bg-white/5 border border-white/10 p-3.5 rounded-2xl text-left md:text-right shrink-0">
-            <span className="text-[10px] text-indigo-305 block font-extrabold uppercase tracking-widest text-slate-300">Authorized Parent Identifier / अभिभावक विवरण</span>
-            <span className="text-sm font-bold text-amber-300 block font-mono mt-0.5">{activeStudent.parentUsername}</span>
+          <div className="bg-white border border-slate-200 p-3.5 rounded-xl text-left md:text-right shrink-0 shadow-xs">
+            <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Authorized Parent Identifier / अभिभावक विवरण</span>
+            <span className="text-sm font-bold text-slate-700 block font-mono mt-0.5">{activeStudent.parentUsername}</span>
           </div>
         </div>
 
         {/* Dynamic Multiple Ward Profiles list (Multi-Kid Sibling Switcher) */}
-        <div id="ward-switcher-row" className="border-t border-white/10 pt-4 flex flex-col sm:flex-row sm:items-center gap-3 text-left">
-          <span className="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-            <Users className="w-4 h-4 text-amber-400" />
+        <div id="ward-switcher-row" className="border-t border-slate-200 pt-4 flex flex-col sm:flex-row sm:items-center gap-3 text-left">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-550 flex items-center gap-1.5 shrink-0">
+            <Users className="w-4 h-4 text-indigo-500" />
             <span>Select Student Profile / छात्र का चयन करें:</span>
           </span>
           <div className="flex flex-wrap gap-2">
@@ -248,10 +297,10 @@ export default function ParentPortal({
               <button
                 key={child.id}
                 onClick={() => setActiveStudentId(child.id)}
-                className={`px-4 py-2.5 text-xs font-black rounded-xl border-1.5 transition-all cursor-pointer ${
+                className={`px-4 py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
                   activeStudent.id === child.id
-                    ? 'bg-amber-450 bg-amber-400 border-amber-300 text-slate-950 font-black shadow-lg shadow-amber-500/10'
-                    : 'bg-white/5 border-white/15 text-slate-200 hover:bg-white/10 hover:border-white/20'
+                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-xs'
+                    : 'bg-white border-slate-200 text-slate-605 hover:bg-slate-50 hover:border-slate-300'
                 }`}
                 aria-label={`Select ${child.name}`}
               >
@@ -732,6 +781,179 @@ export default function ParentPortal({
         </div>
 
       </div>
+
+      {/* CHECKOUT GATEWAY MODAL OVERLAY */}
+      {isCheckoutOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-xl w-full max-w-md overflow-hidden text-left flex flex-col">
+            {/* Header */}
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-indigo-600" />
+                <h3 className="text-sm font-bold text-slate-900">Digital Fee Checkout / डिजिटल भुगतान</h3>
+              </div>
+              <button 
+                onClick={() => setIsCheckoutOpen(false)}
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                aria-label="Close checkout"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Content Body */}
+            <div className="p-6 space-y-5 flex-1">
+              {/* Short summary */}
+              <div className="bg-indigo-50/50 border border-indigo-100 p-4 rounded-xl space-y-1">
+                <span className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider block">Payment Summary / भुगतान सारांश</span>
+                <div className="flex items-baseline justify-between">
+                  <span className="text-xs text-slate-500 font-medium">Fee Payment for {activeStudent.name}</span>
+                  <span className="text-lg font-black text-slate-800">₹{Number(paymentAmount).toLocaleString('en-IN')}</span>
+                </div>
+              </div>
+
+              {/* Payment Methods tabs */}
+              <div className="space-y-2">
+                <span className="form-label">Payment Method / भुगतान विधि</span>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('card')}
+                    className={`py-2 text-xs font-bold border rounded-lg transition-all cursor-pointer ${
+                      paymentMethod === 'card'
+                        ? 'bg-indigo-50 border-indigo-600 text-indigo-700'
+                        : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                    }`}
+                  >
+                    💳 Card
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('upi')}
+                    className={`py-2 text-xs font-bold border rounded-lg transition-all cursor-pointer ${
+                      paymentMethod === 'upi'
+                        ? 'bg-indigo-50 border-indigo-600 text-indigo-700'
+                        : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                    }`}
+                  >
+                    📱 UPI
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('netbanking')}
+                    className={`py-2 text-xs font-bold border rounded-lg transition-all cursor-pointer ${
+                      paymentMethod === 'netbanking'
+                        ? 'bg-indigo-50 border-indigo-600 text-indigo-700'
+                        : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                    }`}
+                  >
+                    🏦 Net Banking
+                  </button>
+                </div>
+              </div>
+
+              {/* Render dynamic payment forms based on method */}
+              <div className="pt-2 border-t border-slate-100 min-h-[120px]">
+                {paymentMethod === 'card' && (
+                  <div className="space-y-3">
+                    <div>
+                      <label htmlFor="card-number" className="form-label">Card Number / कार्ड नंबर</label>
+                      <input
+                        id="card-number"
+                        type="text"
+                        placeholder="4111 2222 3333 4444"
+                        value={cardNum}
+                        onChange={(e) => setCardNum(e.target.value)}
+                        className="form-input text-xs"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label htmlFor="card-expiry" className="form-label">Expiry / समाप्ति</label>
+                        <input
+                          id="card-expiry"
+                          type="text"
+                          placeholder="MM/YY"
+                          value={cardExpiry}
+                          onChange={(e) => setCardExpiry(e.target.value)}
+                          className="form-input text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="card-cvv" className="form-label">CVV</label>
+                        <input
+                          id="card-cvv"
+                          type="password"
+                          placeholder="123"
+                          maxLength={4}
+                          value={cardCvv}
+                          onChange={(e) => setCardCvv(e.target.value)}
+                          className="form-input text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {paymentMethod === 'upi' && (
+                  <div className="space-y-3">
+                    <div>
+                      <label htmlFor="upi-id" className="form-label">UPI ID / वीपीए</label>
+                      <input
+                        id="upi-id"
+                        type="text"
+                        placeholder="username@bank"
+                        value={upiId}
+                        onChange={(e) => setUpiId(e.target.value)}
+                        className="form-input text-xs"
+                      />
+                      <span className="text-[10px] text-slate-400 block mt-1">Enter your virtual payment address (VPA)</span>
+                    </div>
+                  </div>
+                )}
+
+                {paymentMethod === 'netbanking' && (
+                  <div className="space-y-3">
+                    <div>
+                      <label htmlFor="select-bank" className="form-label">Select Bank / बैंक चुनें</label>
+                      <select
+                        id="select-bank"
+                        value={selectedBank}
+                        onChange={(e) => setSelectedBank(e.target.value)}
+                        className="form-input text-xs font-bold"
+                      >
+                        <option value="sbi">State Bank of India (SBI)</option>
+                        <option value="hdfc">HDFC Bank</option>
+                        <option value="icici">ICICI Bank</option>
+                        <option value="axis">Axis Bank</option>
+                        <option value="pnb">Punjab National Bank</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="p-5 border-t border-slate-100 bg-slate-50/50 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setIsCheckoutOpen(false)}
+                className="btn-secondary py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex-1 cursor-pointer"
+              >
+                Cancel / रद्द करें
+              </button>
+              <button
+                type="button"
+                onClick={handlePayNow}
+                className="btn-primary py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex-1 cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <span>Confirm & Pay / भुगतान करें</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
